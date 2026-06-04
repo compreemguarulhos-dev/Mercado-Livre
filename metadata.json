@@ -1,0 +1,6 @@
+{
+  "name": "Plataforma Enterprise Mercado Livre",
+  "description": "SaaS corporativo de inteligência de mercado, precificação dinâmica, webhooks customizados e automação de vendas integrada às APIs do Mercado Livre.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
