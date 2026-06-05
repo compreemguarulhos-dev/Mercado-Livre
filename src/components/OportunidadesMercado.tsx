@@ -1997,7 +1997,7 @@ export default function OportunidadesMercado({ isMeliConnected, isMeliOfficial, 
                           </div>
 
                           <a 
-                            href={product.permalink} 
+                            href={product.permalink && product.permalink !== "https://www.mercadolivre.com.br" ? product.permalink : `https://lista.mercadolivre.com.br/${encodeURIComponent(product.title)}`} 
                             target="_blank" 
                             rel="noopener noreferrer"
                             className="block font-bold text-xs text-slate-900 hover:text-cyan-600 truncate transition-colors"

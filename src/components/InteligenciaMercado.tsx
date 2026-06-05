@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { 
   Search, TrendingUp, HelpCircle, Trophy, Filter, 
   Sparkles, CheckCircle2, Truck, ShoppingBag, BadgeInfo,
-  DollarSign, Landmark, ArrowUpDown, ChevronRight, Zap, Info, ShieldAlert
+  DollarSign, Landmark, ArrowUpDown, ChevronRight, Zap, Info, ShieldAlert,
+  ExternalLink
 } from 'lucide-react';
 import { getApiUrl } from '../utils';
 
@@ -19,6 +20,7 @@ interface MeliItem {
   categoryName: string;
   demandLevel: 'Alta' | 'Média' | 'Normal';
   score: number; // calculated score out of 100 for opportunities
+  permalink: string;
 }
 
 interface Props {
@@ -116,7 +118,8 @@ export default function InteligenciaMercado({ isMeliConnected, isMeliOfficial, s
               ? item.domain_id.replace(/_/g, " ").replace("MLB ", "").replace("MLM ", "").replace("MLA ", "").replace("MLA-", "").toUpperCase()
               : "GERAL",
             demandLevel: soldCount > 500 ? 'Alta' : soldCount > 80 ? 'Média' : 'Normal',
-            score: score
+            score: score,
+            permalink: item.permalink || `https://produto.mercadolivre.com.br/MLB-${item.id}`
           };
         });
 
@@ -480,8 +483,16 @@ export default function InteligenciaMercado({ isMeliConnected, isMeliOfficial, s
                         </div>
 
                         {/* Título de Vendas */}
-                        <h4 className="text-xs font-bold text-slate-800 line-clamp-2 leading-relaxed" title={item.title}>
-                          {item.title}
+                        <h4 className="text-xs font-bold text-slate-800 line-clamp-2 leading-relaxed hover:text-indigo-600 transition-colors" title={item.title}>
+                          <a 
+                            href={item.permalink} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 hover:underline"
+                          >
+                            <span>{item.title}</span>
+                            <ExternalLink className="w-3.5 h-3.5 inline-block text-slate-400 flex-shrink-0" />
+                          </a>
                         </h4>
 
                         {/* Preço de Prateleira */}

@@ -139,78 +139,107 @@ async function startServer() {
     const lowerQuery = queryStr.toLowerCase();
     const count = Number(limit || 24);
 
-    const baseItems = [
-      { id: "88231039", titleSuffix: "Xiaomi Redmi Note 13 256GB 8GB RAM Versão Global", price: 1149.90, imgType: "smartphone" },
-      { id: "88231040", titleSuffix: "Carregador Portátil Power Bank 20050mAh Turbo Fast Charge", price: 129.50, imgType: "powerbank" },
-      { id: "88234042", titleSuffix: "Cabo USB-C Nylon Trançado Reforçado 2 Metros Inquebrável", price: 35.00, imgType: "cable" },
-      { id: "88232095", titleSuffix: "Teclado Mecânico Gamer Redragon Kumara K552 RGB Switch Blue", price: 239.90, imgType: "keyboard" },
-      { id: "88233301", titleSuffix: "Mouse Sem Fio Ergonômico Logitech Pebble M350 Bluetooth Silent", price: 119.00, imgType: "mouse" },
-      { id: "88237720", titleSuffix: "Mochila Impermeável Masculina Anti-Roubo para Notebook USB", price: 149.00, imgType: "backpack" },
-      { id: "88236102", titleSuffix: "Smartwatch AMOLED Multi-Sport GPS Integrado Inteligente Pro", price: 289.00, imgType: "watch" },
-      { id: "88235510", titleSuffix: "Mini Projetor Portátil Smart Wifi Integrado Full HD Cinema", price: 479.90, imgType: "projector" },
-      { id: "88243215", titleSuffix: "Umidificador de Ar Ultrassônico 3 Litros Silencioso Difusor", price: 89.90, imgType: "humidifier" },
-      { id: "88231082", titleSuffix: "Suporte Articulado de Mesa para Monitores 17 a 35 Pistão a Gás", price: 169.90, imgType: "stand" },
-      { id: "88240122", titleSuffix: "Balança Digital de Alta Precisão Cozinha de Vidro Temperado", price: 34.90, imgType: "scale" },
-      { id: "88238845", titleSuffix: "Lâmpada Inteligente RGB Smart Home Wifi Compatível com Alexa", price: 42.90, imgType: "lamp" },
-      { id: "88239990", titleSuffix: "Tripé de Mesa Flexível Articulado para Celulares e Câmeras", price: 28.50, imgType: "tripod" },
-      { id: "88242130", titleSuffix: "Garrafa Térmica Premium de Inox 1 Litro Conserva Gelado 24h", price: 119.90, imgType: "bottle" },
-      { id: "88244450", titleSuffix: "Adaptador Hub Tipo-C Multiportas 5 em 1 HDMI 4K USB 3.0 Card", price: 99.00, imgType: "hub" },
-      { id: "88231055", titleSuffix: "Organizador de Mesa Acrílico Multiuso Divisórias Office", price: 45.90, imgType: "organizer" }
+    // List of dynamic products for different niches to preserve 100% sanity
+    const beautyProducts = [
+      { id: "1001", title: "Kit Maquiagem Completo Maleta Profissional Ruby Rose", price: 149.90, img: "https://images.unsplash.com/photo-1515688594390-b649af70d282?auto=format&fit=crop&w=400&q=80" },
+      { id: "1002", title: "Base Líquida Boca Rosa Beauty By Payot Mate Alta Cobertura", price: 54.50, img: "https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&w=400&q=80" },
+      { id: "1003", title: "Batom Líquido Matte Max Love 12 Horas Secagem Rápida", price: 19.90, img: "https://images.unsplash.com/photo-1522335789253-ab4fc4033482?auto=format&fit=crop&w=400&q=80" },
+      { id: "1004", title: "Rímel Máscara de Cílios Maybelline The Colossal Original Black", price: 39.90, img: "https://images.unsplash.com/photo-1512496015851-a90fb38ba796?auto=format&fit=crop&w=400&q=80" },
+      { id: "1005", title: "Paleta de Sombras de Maquiagem Nude Glitter Profissional", price: 69.90, img: "https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&w=400&q=80" },
+      { id: "1006", title: "Pó Compacto Facial Matte Prova D'água Soft Focus Balm", price: 28.90, img: "https://images.unsplash.com/photo-1526045478516-99145907023c?auto=format&fit=crop&w=400&q=80" },
+      { id: "1007", title: "Delineador Líquido Caneta Maquiagem Olhos Preto Intenso", price: 24.90, img: "https://images.unsplash.com/photo-1512496015851-a90fb38ba796?auto=format&fit=crop&w=400&q=80" },
+      { id: "1008", title: "Kit 12 Pincéis de Maquiagem Profissional Super Macios Cabo Marrom", price: 45.00, img: "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&w=400&q=80" },
+      { id: "1009", title: "Água Micelar L'Oréal Paris Hialurônico Purificante 200ml", price: 31.90, img: "https://images.unsplash.com/photo-1556228578-0d85b1a4d571?auto=format&fit=crop&w=400&q=80" },
+      { id: "1010", title: "Corretivo Líquido de Alta Cobertura Maquiagem Matte Vegano", price: 22.50, img: "https://images.unsplash.com/photo-1526045478516-99145907023c?auto=format&fit=crop&w=400&q=80" }
+    ];
+
+    const techProducts = [
+      { id: "2001", title: "Xiaomi Redmi Note 13 256GB 8GB RAM Versão Global", price: 1149.90, img: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=400&q=80" },
+      { id: "2002", title: "Smartphone Samsung Galaxy A54 5G 128GB Tela AMOLED 120Hz", price: 1599.00, img: "https://images.unsplash.com/photo-1580910051074-3eb694886505?auto=format&fit=crop&w=400&q=80" },
+      { id: "2003", title: "Apple iPhone 13 128GB Meia-noite iOS Câmera Pro Dual", price: 3499.00, img: "https://images.unsplash.com/photo-1510557880182-3d4d3cba35a5?auto=format&fit=crop&w=400&q=80" },
+      { id: "2004", title: "Smartphone Motorola Moto G84 5G 256GB Grafite Versão Brasil", price: 1299.00, img: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=400&q=80" },
+      { id: "2005", title: "Xiaomi Poco X6 Pro 5G 512GB Turbo Charging NFC Original", price: 2199.00, img: "https://images.unsplash.com/photo-1598327105666-5b89351aff97?auto=format&fit=crop&w=400&q=80" }
+    ];
+
+    const audioProducts = [
+      { id: "3001", title: "Fone de Ouvido Bluetooth JBL Wave Flex Sem Fio Original", price: 269.90, img: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=400&q=80" },
+      { id: "3002", title: "Headset Gamer HyperX Cloud Stinger 2 Microfone Mute", price: 229.00, img: "https://images.unsplash.com/photo-1583394838336-acd977736f90?auto=format&fit=crop&w=400&q=80" },
+      { id: "3003", title: "Fone Sem Fio Xiaomi Redmi Buds 5 Cancelamento de Ruído", price: 159.00, img: "https://images.unsplash.com/photo-1608156639585-b3a032ef9689?auto=format&fit=crop&w=400&q=80" },
+      { id: "3004", title: "Caixa de Som Portátil Bluetooth Resistente À Água Bass", price: 189.90, img: "https://images.unsplash.com/photo-1608043152269-423dbba4e7e1?auto=format&fit=crop&w=400&q=80" },
+      { id: "3005", title: "Fone Bluetooth Sem Fio Air Pro 6 Anti-suor Academia Fit", price: 49.90, img: "https://images.unsplash.com/photo-1590658268037-6bf12165a8df?auto=format&fit=crop&w=400&q=80" }
+    ];
+
+    const generalNichesList = [
+      { suffix: "Profissional Premium de Alta Qualidade", basePrice: 120.00, imgKey: "stand" },
+      { suffix: "Kit Completo Custo Benefício Garantido", basePrice: 85.50, imgKey: "backpack" },
+      { suffix: "Importado Original Edição Especial Limitada", basePrice: 249.00, imgKey: "watch" },
+      { suffix: "Compacto Ergonômico de Última Geração", basePrice: 59.90, imgKey: "mouse" },
+      { suffix: "Resistente de Alta Durabilidade Brasil", basePrice: 45.00, imgKey: "bottle" },
+      { suffix: "Inteligente com Conectividade Avançada", basePrice: 180.00, imgKey: "projector" },
+      { suffix: "Tradicional com Garantia Oficial de Fábrica", basePrice: 95.00, imgKey: "keyboard" }
     ];
 
     const imageAssets: Record<string, string> = {
-      smartphone: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=400&q=80",
-      powerbank: "https://images.unsplash.com/photo-1609592806453-6a9ed3a5e8b4?auto=format&fit=crop&w=400&q=80",
-      cable: "https://images.unsplash.com/photo-1546868871-7041f2a55e12?auto=format&fit=crop&w=400&q=80",
+      watch: "https://images.unsplash.com/photo-1508685096489-7aacd43bd3b1?auto=format&fit=crop&w=400&q=80",
+      projector: "https://images.unsplash.com/photo-1535016120720-40c646be5580?auto=format&fit=crop&w=400&q=80",
+      stand: "https://images.unsplash.com/photo-1603481588273-2f908a9a7a1b?auto=format&fit=crop&w=400&q=80",
       keyboard: "https://images.unsplash.com/photo-1618384887929-16ec33fab9ef?auto=format&fit=crop&w=400&q=80",
       mouse: "https://images.unsplash.com/photo-1615663245857-ac93bb7c39e7?auto=format&fit=crop&w=400&q=80",
       backpack: "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=400&q=80",
-      watch: "https://images.unsplash.com/photo-1508685096489-7aacd43bd3b1?auto=format&fit=crop&w=400&q=80",
-      projector: "https://images.unsplash.com/photo-1535016120720-40c646be5580?auto=format&fit=crop&w=400&q=80",
-      humidifier: "https://images.unsplash.com/photo-1602928321679-560bb453f190?auto=format&fit=crop&w=400&q=80",
-      stand: "https://images.unsplash.com/photo-1603481588273-2f908a9a7a1b?auto=format&fit=crop&w=400&q=80",
-      scale: "https://images.unsplash.com/photo-1574269661430-c92c3d575c3a?auto=format&fit=crop&w=400&q=80",
-      lamp: "https://images.unsplash.com/photo-1507473885765-e6ed057f782c?auto=format&fit=crop&w=400&q=80",
-      tripod: "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?auto=format&fit=crop&w=400&q=80",
-      bottle: "https://images.unsplash.com/photo-1602143407151-7111542de6e8?auto=format&fit=crop&w=400&q=80",
-      hub: "https://images.unsplash.com/photo-1468495244123-6c6c332eeece?auto=format&fit=crop&w=400&q=80",
-      organizer: "https://images.unsplash.com/photo-1596040033229-a9821ebd058d?auto=format&fit=crop&w=400&q=80"
+      bottle: "https://images.unsplash.com/photo-1602143407151-7111542de6e8?auto=format&fit=crop&w=400&q=80"
     };
 
     const results: any[] = [];
+    const isBeautyNiche = lowerQuery.includes("maquiagem") || lowerQuery.includes("batom") || lowerQuery.includes("rimel") || lowerQuery.includes("sombra") || lowerQuery.includes("base") || lowerQuery.includes("beleza") || lowerQuery.includes("cosmet") || lowerQuery.includes("pincel") || lowerQuery.includes("makeup") || lowerQuery.includes("cuidado");
+    const isTechNiche = lowerQuery.includes("celular") || lowerQuery.includes("smartphone") || lowerQuery.includes("iphone") || lowerQuery.includes("xiaomi") || lowerQuery.includes("samsung") || lowerQuery.includes("redmi") || lowerQuery.includes("motorola");
+    const isAudioNiche = lowerQuery.includes("fone") || lowerQuery.includes("headset") || lowerQuery.includes("audio") || lowerQuery.includes("som") || lowerQuery.includes("bluetooth") || lowerQuery.includes("jbl");
+
     for (let i = 0; i < count; i++) {
       const hash = lowerQuery.split('').reduce((acc, char, idx) => acc + char.charCodeAt(0) * (idx + 1), 0) + i + 101;
-      const baseItem = baseItems[hash % baseItems.length];
-      const titleQuery = queryStr.charAt(0).toUpperCase() + queryStr.slice(1);
-
+      let finalId = "";
       let finalTitle = "";
-      if (lowerQuery === "smartphone" || lowerQuery === "celular") {
-        finalTitle = baseItem.titleSuffix;
-      } else if (i % 3 === 0) {
-        finalTitle = `${titleQuery} - ${baseItem.titleSuffix}`;
-      } else if (i % 3 === 1) {
-        const words = baseItem.titleSuffix.split(" ");
-        finalTitle = `${words[0]} ${titleQuery} ${words.slice(1).join(" ")}`;
+      let price = 49.90;
+      let thumbnail = "";
+
+      if (isBeautyNiche) {
+        const item = beautyProducts[hash % beautyProducts.length];
+        finalId = `MLB354${item.id}${100 + i}`;
+        finalTitle = item.title;
+        price = item.price;
+        thumbnail = item.img;
+      } else if (isTechNiche) {
+        const item = techProducts[hash % techProducts.length];
+        finalId = `MLB105${item.id}${100 + i}`;
+        finalTitle = item.title;
+        price = item.price;
+        thumbnail = item.img;
+      } else if (isAudioNiche) {
+        const item = audioProducts[hash % audioProducts.length];
+        finalId = `MLB201${item.id}${100 + i}`;
+        finalTitle = item.title;
+        price = item.price;
+        thumbnail = item.img;
       } else {
-        finalTitle = `${titleQuery} Inteligente Premium Series ${10 + i}`;
+        const item = generalNichesList[hash % generalNichesList.length];
+        finalId = `MLB987${i}${150 + i}`;
+        const phraseTitle = queryStr.charAt(0).toUpperCase() + queryStr.slice(1);
+        finalTitle = `${phraseTitle} - ${item.suffix} ${i + 1}`;
+        price = Math.round((item.basePrice * (0.8 + (hash % 40) / 100)) * 10) / 10 || 59.90;
+        thumbnail = imageAssets[item.imgKey] || "https://images.unsplash.com/photo-1546868871-7041f2a55e12?auto=format&fit=crop&w=400&q=80";
       }
 
       if (finalTitle.length > 80) {
         finalTitle = finalTitle.substring(0, 77) + "...";
       }
 
-      const price = baseItem.price;
-      const soldQuantity = (hash % 1450) + 45;
-      const availableQuantity = (hash % 89) + 4;
+      const soldQuantity = (hash % 1150) + 35;
+      const availableQuantity = (hash % 45) + 3;
       const condition = "new";
       const freeShipping = true;
       const isFulfillment = true;
 
-      const imgKey = baseItem.imgType;
-      const thumbnail = imageAssets[imgKey] || "https://images.unsplash.com/photo-1531403009284-440f080d1e12?w=400";
-
       results.push({
-        id: `MLB${baseItem.id}${100 + i}`,
+        id: finalId,
         title: finalTitle,
         price: price,
         condition: condition,
@@ -222,9 +251,9 @@ async function startServer() {
         sold_quantity: soldQuantity,
         available_quantity: availableQuantity,
         domain_id: `MLB_${lowerQuery.toUpperCase().replace(/[^A-Z0-9]/g, '_')}`,
-        catalog_listing: hash % 7 === 0,
-        catalog_product_id: hash % 7 === 0 ? `MLB_CAT_${hash % 4000}` : null,
-        permalink: "https://www.mercadolivre.com.br"
+        catalog_listing: hash % 6 === 0,
+        catalog_product_id: hash % 6 === 0 ? `MLB_CAT_${hash % 4500}` : null,
+        permalink: `https://lista.mercadolivre.com.br/${encodeURIComponent(finalTitle)}`
       });
     }
 
