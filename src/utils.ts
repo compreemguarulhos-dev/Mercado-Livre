@@ -16,8 +16,14 @@ export function getApiBaseUrl(): string {
   }
 
   const origin = window.location.origin;
-  // If running locally or on the official Cloud Run preview container host
-  if ((origin.includes('localhost') || origin.includes('run.app')) && !origin.includes('vercel.app')) {
+  // If running on a known static-only frontend host, use the fallback backend.
+  // Otherwise, if running locally, on Render, or any full-stack provider, use the current origin as the API base.
+  const isStaticOnlyHost = origin.includes('vercel.app') || 
+                           origin.includes('github.io') || 
+                           origin.includes('netlify.app') || 
+                           origin.includes('pages.dev');
+
+  if (!isStaticOnlyHost) {
     return origin;
   }
 

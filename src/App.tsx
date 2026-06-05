@@ -9,10 +9,11 @@ import MonitorConcorrentes from './components/MonitorConcorrentes';
 import WebhooksManager from './components/WebhooksManager';
 import OAuthPKCESimulator from './components/OAuthPKCESimulator';
 import ArchitectureBlueprint from './components/ArchitectureBlueprint';
+import OportunidadesMercado from './components/OportunidadesMercado';
 import { SystemMetrics } from './types';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'intel' | 'repricer' | 'webhooks' | 'oauth' | 'archi'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'intel' | 'opportunities' | 'repricer' | 'webhooks' | 'oauth' | 'archi'>('dashboard');
   const [isMeliConnected, setIsMeliConnected] = useState<boolean>(() => {
     return !!localStorage.getItem('meli_access_token');
   });
@@ -111,6 +112,18 @@ export default function App() {
           >
             <Search className={`w-4 h-4 ${activeTab === 'intel' ? 'text-blue-400' : ''}`} />
             <span>Inteligência de Mercado</span>
+          </button>
+
+          <button 
+            onClick={() => setActiveTab('opportunities')}
+            className={`w-full p-2.5 rounded flex items-center gap-3 transition-colors ${
+              activeTab === 'opportunities' 
+                ? 'bg-slate-800 text-white' 
+                : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+            }`}
+          >
+            <Sparkles className={`w-4 h-4 ${activeTab === 'opportunities' ? 'text-cyan-450' : ''}`} />
+            <span>Radar de Oportunidades</span>
           </button>
 
           <button 
@@ -269,6 +282,13 @@ export default function App() {
               )}
               {activeTab === 'intel' && (
                 <InteligenciaMercado 
+                  isMeliConnected={isMeliConnected} 
+                  isMeliOfficial={isOfficial}
+                  sellerNickname={sellerNickname}
+                />
+              )}
+              {activeTab === 'opportunities' && (
+                <OportunidadesMercado 
                   isMeliConnected={isMeliConnected} 
                   isMeliOfficial={isOfficial}
                   sellerNickname={sellerNickname}
