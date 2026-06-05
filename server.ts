@@ -9,6 +9,21 @@ async function startServer() {
   // Config body parsing middleware
   app.use(express.json());
 
+  // CORS Middleware to allow requests from the Vercel app or anywhere else during development
+  app.use((req, res, next) => {
+    const origin = req.headers.origin;
+    // Set permissive CORS headers or match incoming origin directly
+    res.header("Access-Control-Allow-Origin", origin || "*");
+    res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Content-Type, Authorization, Accept");
+    res.header("Access-Control-Allow-Credentials", "true");
+
+    if (req.method === "OPTIONS") {
+      return res.sendStatus(200);
+    }
+    next();
+  });
+
   // API Route - Proxy to secure validation with Mercado Livre
   app.get("/api/meli/users/me", async (req, res) => {
     try {

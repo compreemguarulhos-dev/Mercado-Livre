@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   Key, ShieldCheck, RefreshCw, Eye, Check, Lock, AlertCircle, Sparkles, HelpCircle, Globe, Link2, LogOut, ArrowRight, CheckCircle2
 } from 'lucide-react';
+import { getApiUrl, getApiBaseUrl } from '../utils';
 
 interface Props {
   isMeliConnected?: boolean;
@@ -21,6 +22,11 @@ export default function OAuthPKCESimulator({ isMeliConnected, onConnectChange }:
 
   // Server configuration loaded from environment variables
   const [serverConfig, setServerConfig] = useState<{ clientId: string; redirectUri: string; hasSecret: boolean } | null>(null);
+
+  // Dynamic backend proxy URL for direct/oauth flows
+  const [backendUrl, setBackendUrl] = useState(() => {
+    return localStorage.getItem('meli_backend_url') || getApiBaseUrl();
+  });
 
   // Direct Token State
   const [manualToken, setManualToken] = useState(() => {
@@ -97,27 +103,39 @@ export default function OAuthPKCESimulator({ isMeliConnected, onConnectChange }:
     }
   };
 
-  // URL Query Param detection for callback redirect
-  useEffect(() => {
-    // Fetch configuration from Server variables on mount
-    fetch('/api/meli/config')
-      .then(res => res.json())
+  // Helper to load config dynamically
+  const loadServerConfig = () => {
+    const configUrl = getApiUrl('/api/meli/config');
+    addLog(`📡 Buscando configurações do backend em ${configUrl}...`);
+    fetch(configUrl)
+      .then(res => {
+        if (!res.ok) {
+          throw new Error(`STATUS ${res.status}`);
+        }
+        return res.json();
+      })
       .then(data => {
         setServerConfig(data);
         if (data.clientId) {
           setClientId(data.clientId);
-          addLog(`⚡ Configurações de ambiente carregadas do Servidor: Client ID detectado (${data.clientId})`);
+          addLog(`⚡ Configurações carregadas com sucesso: Client ID (${data.clientId})`);
         }
         if (data.hasSecret) {
           addLog("🔒 Client Secret seguro pré-configurado no backend. O preenchimento manual é opcional!");
         }
         if (data.redirectUri) {
-          addLog(`🌐 Redirect URI prioritário: ${data.redirectUri}`);
+          addLog(`🌐 Redirect URI de produção: ${data.redirectUri}`);
         }
       })
       .catch(err => {
         console.error("Falha ao carregar as variáveis de ambiente:", err);
+        addLog(`⚠️ Não foi possível carregar as configurações automáticas do backend (${err.message}). Verifique o endereço do servidor backend.`);
       });
+  };
+
+  // URL Query Param detection for callback redirect
+  useEffect(() => {
+    loadServerConfig();
 
     const params = new URLSearchParams(window.location.search);
     const codeParam = params.get('code');
@@ -151,7 +169,7 @@ export default function OAuthPKCESimulator({ isMeliConnected, onConnectChange }:
     addLog("GET /api/meli/users/me -> Requisitando informações cadastrais reais...");
 
     try {
-      const response = await fetch("/api/meli/users/me", {
+      const response = await fetch(getApiUrl("/api/meli/users/me"), {
         headers: {
           "Authorization": `Bearer ${trimmedToken}`
         }
@@ -277,7 +295,7 @@ export default function OAuthPKCESimulator({ isMeliConnected, onConnectChange }:
     const redirectUri = serverConfig?.redirectUri || (window.location.origin + window.location.pathname);
 
     try {
-      const response = await fetch("/api/meli/oauth/token", {
+      const response = await fetch(getApiUrl("/api/meli/oauth/token"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -356,7 +374,7 @@ export default function OAuthPKCESimulator({ isMeliConnected, onConnectChange }:
     addLog(`🔄 Disparando renovação assíncrona usando o Refresh Token registrado...`);
 
     try {
-      const response = await fetch("/api/meli/oauth/token", {
+      const response = await fetch(getApiUrl("/api/meli/oauth/token"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -388,7 +406,7 @@ export default function OAuthPKCESimulator({ isMeliConnected, onConnectChange }:
 
         onConnectChange?.(true);
         // recheck profile
-        const meRes = await fetch("/api/meli/users/me", { headers: { "Authorization": `Bearer ${at}` } });
+        const meRes = await fetch(getApiUrl("/api/meli/users/me"), { headers: { "Authorization": `Bearer ${at}` } });
         if (meRes.ok) {
           const meData = await meRes.json();
           setConnectedAccount({
@@ -456,6 +474,65 @@ export default function OAuthPKCESimulator({ isMeliConnected, onConnectChange }:
             </button>
           </div>
         )}
+      </div>
+
+      {/* BACKEND API SERVER CONNECTION PANEL */}
+      <div className="bg-slate-900 border border-slate-805 rounded-xl p-5 space-y-4 shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800/80 pb-3">
+          <div className="flex items-center gap-2">
+            <Globe className="w-5 h-5 text-cyan-400" />
+            <div>
+              <h3 className="text-sm font-bold text-slate-100 font-mono">Conexão do Servidor Backend</h3>
+              <p className="text-[11px] text-slate-450">Sua interface React precisa apontar para onde seu servidor Express (Cloud Run) está executando para processar chaves seguras.</p>
+            </div>
+          </div>
+          {window.location.origin.includes("vercel.app") && (
+            <span className="px-2 py-0.5 bg-indigo-950 text-indigo-300 border border-indigo-800 rounded font-mono text-[9px] font-bold">
+              ✓ Executando via Vercel
+            </span>
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+          <div className="md:col-span-2 space-y-1.55">
+            <label className="text-[10px] text-cyan-400 block font-bold font-mono uppercase">URL DO SERVIDOR EXPRESS CLOUD RUN (PROXY SEGURO):</label>
+            <input 
+              type="text" 
+              value={backendUrl}
+              onChange={(e) => setBackendUrl(e.target.value)}
+              placeholder="https://sua-api-cloudrun.run.app"
+              className="w-full bg-slate-950 border border-slate-805 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/20 p-2.5 text-cyan-300 font-mono outline-none text-xs rounded"
+            />
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => {
+                const trimmed = backendUrl.trim();
+                localStorage.setItem('meli_backend_url', trimmed);
+                addLog(`⚙️ Backend alterado para: ${trimmed || 'Automático (Origem local)'}`);
+                loadServerConfig();
+              }}
+              className="px-4 py-2.5 bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-bold rounded text-xs font-mono cursor-pointer transition-all flex-1 text-center font-bold"
+            >
+              Salvar e Testar Conectividade
+            </button>
+            {localStorage.getItem('meli_backend_url') && (
+              <button
+                onClick={() => {
+                  localStorage.removeItem('meli_backend_url');
+                  const def = getApiBaseUrl();
+                  setBackendUrl(def);
+                  addLog(`🔄 Restaurado para o host padrão: ${def}`);
+                  setTimeout(() => loadServerConfig(), 100);
+                }}
+                className="px-3 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-350 hover:text-white rounded text-xs font-mono font-bold cursor-pointer"
+                title="Restaurar Padrão"
+              >
+                Padrão
+              </button>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* DETECTED CODE BANNER FROM OAUTH REDIRECT */}

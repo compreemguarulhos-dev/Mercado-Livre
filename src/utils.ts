@@ -1,0 +1,29 @@
+/**
+ * Helper to dynamically resolve the Backend Proxy Server URL.
+ * Enables client applications running on Vercel or other external domains
+ * to successfully communicate with this secure full-stack backend module on Cloud Run.
+ */
+export function getApiBaseUrl(): string {
+  const saved = localStorage.getItem('meli_backend_url');
+  if (saved) {
+    return saved.trim();
+  }
+
+  const origin = window.location.origin;
+  // If running locally or on the official Cloud Run preview container host
+  if (origin.includes('localhost') || origin.includes('run.app')) {
+    return origin;
+  }
+
+  // Fallback to our running workspace Cloud Run service URL
+  return 'https://ais-pre-evos2tczwiqldpq4hhrdmu-485888573949.us-east1.run.app';
+}
+
+/**
+ * Normalizes and produces a fully qualified URL for any local proxy endpoint.
+ */
+export function getApiUrl(path: string): string {
+  const base = getApiBaseUrl().replace(/\/$/, '');
+  const cleanPath = path.startsWith('/') ? path : `/${path}`;
+  return `${base}${cleanPath}`;
+}

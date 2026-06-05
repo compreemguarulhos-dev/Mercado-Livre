@@ -4,6 +4,7 @@ import {
   Sparkles, CheckCircle2, Truck, ShoppingBag, BadgeInfo,
   DollarSign, Landmark, ArrowUpDown, ChevronRight, Zap, Info, ShieldAlert
 } from 'lucide-react';
+import { getApiUrl } from '../utils';
 
 // Friendly Meli Item structure focusing on client outcomes
 interface MeliItem {
@@ -69,7 +70,7 @@ export default function InteligenciaMercado({ isMeliConnected, isMeliOfficial, s
     const cleanQuery = encodeURIComponent(searchQuery.trim() || 'smartphone');
     
     // Official public API endpoint routed via securely pre-configured proxy to avoid CORS/network issues
-    const url = `/api/meli/search?siteId=${siteId}&q=${cleanQuery}&limit=24`;
+    const url = getApiUrl(`/api/meli/search?siteId=${siteId}&q=${cleanQuery}&limit=24`);
 
     fetch(url, { signal: controller.signal })
       .then(res => {
