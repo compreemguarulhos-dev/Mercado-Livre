@@ -208,7 +208,7 @@ async function startServer() {
       const thumbnail = imageAssets[imgKey] || "https://images.unsplash.com/photo-1531403009284-440f080d1e12?w=400";
 
       results.push({
-        id: `MLB${baseItem.id}`,
+        id: `MLB${baseItem.id}${100 + i}`,
         title: finalTitle,
         price: price,
         condition: condition,

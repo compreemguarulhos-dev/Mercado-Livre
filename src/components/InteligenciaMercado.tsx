@@ -209,25 +209,6 @@ export default function InteligenciaMercado({ isMeliConnected, isMeliOfficial, s
         </div>
       )}
 
-      {/* 🌟 2. Cartão Didático de Explicação de Performance (Sem Jargão mas transparente) */}
-      <div className="bg-gradient-to-r from-indigo-50 to-blue-50 border border-indigo-150 rounded-xl p-5 shadow-2xs">
-        <div className="flex gap-4 items-start">
-          <div className="bg-indigo-600 p-2.5 rounded-lg text-white mt-0.5">
-            <Zap className="w-5 h-5" />
-          </div>
-          <div className="space-y-2">
-            <h3 className="text-sm font-bold text-indigo-900">
-              💡 Segredo de Velocidade JoomPulse: Redução de 85% de Dados Ativada!
-            </h3>
-            <p className="text-xs text-indigo-850 leading-relaxed font-medium">
-              Na listagem original de anúncios, a API do Mercado Livre é muito robusta e retorna milhares de campos ocultos (como extensas cláusulas contratuais, detalhes de servidores e descrições gigantescas externas), pesando de 25KB a 60KB por produto. 
-              Para ferramentas de alto desempenho com milhares de chaves concorrendo (ex: JoomPulse), <strong>nós ativamos sempre a economia inteligente e a restrição de "attributes=id,price,status,shipping"</strong>. 
-              Isso reduz o payload de dados por anúncio em incríveis <strong>85%</strong>! O resultado é uma pesquisa incrivelmente rápida, que resguarda a velocidade do aplicativo e previne totalmente erros de limite de internet excedido ou travamentos.
-            </p>
-          </div>
-        </div>
-      </div>
-
       {/* 🌟 3. Título Principal Centrado no Usuário Leigo */}
       <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-xs flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
