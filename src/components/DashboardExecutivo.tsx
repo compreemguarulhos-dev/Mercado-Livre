@@ -11,9 +11,11 @@ import { COCKPIT_CHART_SALES, SALES_BY_CATEGORY, MARKET_SHARE_DATA } from '../da
 
 interface Props {
   isMeliConnected?: boolean;
+  isMeliOfficial?: boolean;
+  sellerNickname?: string;
 }
 
-export default function DashboardExecutivo({ isMeliConnected }: Props) {
+export default function DashboardExecutivo({ isMeliConnected, isMeliOfficial, sellerNickname }: Props) {
   const [filterPeriod, setFilterPeriod] = useState<'7d' | '30d' | 'today'>('7d');
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -77,24 +79,24 @@ export default function DashboardExecutivo({ isMeliConnected }: Props) {
           <div className="flex gap-3 items-start text-xs text-amber-850">
             <ShieldAlert className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
             <div className="font-semibold space-y-0.5">
-              <span className="font-bold text-amber-900 block">Atualmente em Modo de Demonstração (Sandbox)</span>
-              <p>Os dados de faturamento, pedidos e participação exibidos abaixo são projeções fictícias estimadas de simulação.</p>
+              <span className="font-bold text-amber-900 block">Aviso: Modo de Demonstração Ativo (Anônimo)</span>
+              <p>O cockpit analítico está exibindo projeções ilustrativas de simulação para novos usuários. Para puxar seu faturamento real diretamente do Mercado Livre, insira seu Access Token em "Conexão Oficial".</p>
             </div>
           </div>
-          <p className="text-[11px] text-amber-700 bg-amber-100 hover:bg-amber-200 px-2.5 py-1 rounded-lg border border-amber-300/60 font-bold transition-all self-start sm:self-auto select-none">
-            Apenas para fins demonstrativos
+          <p className="text-[11px] text-amber-700 bg-amber-100/50 hover:bg-amber-200 px-2.5 py-1 rounded-lg border border-amber-300/40 font-bold transition-all self-start sm:self-auto select-none font-mono">
+            Modo Demonstrativo
           </p>
         </div>
       ) : (
         <div className="bg-emerald-50 border border-emerald-250/60 rounded-xl p-4 flex gap-3 items-start text-xs text-emerald-850 shadow-2xs">
-          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse mt-1.5 flex-shrink-0"></span>
+          <span className="w-2.5 h-2.5 rounded-full bg-emerald-555 animate-pulse mt-1 flex-shrink-0"></span>
           <div className="font-semibold space-y-0.5">
-            <span className="font-bold text-emerald-950 block">Conexão Oficial Estabelecida</span>
-            <p>Seus painéis analíticos corporativos estão integrados em tempo real com as faturas, pedidos consolidados e taxas de entrega do Mercado Livre.</p>
+            <span className="font-bold text-emerald-950 block">Conexão Oficial Validada: @{sellerNickname}</span>
+            <p>Seu cockpit analítico está legitimamente conectado à API oficial do Mercado Livre. O monitoramento de faturamento e eventos de vendas estão ativos e operacionais.</p>
           </div>
         </div>
       )}
- 
+
       {/* KPI Cards Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         

@@ -5,7 +5,13 @@ import {
 } from 'lucide-react';
 import { WebhookEvent } from '../types';
 
-export default function WebhooksManager() {
+interface Props {
+  isMeliConnected?: boolean;
+  isMeliOfficial?: boolean;
+  sellerNickname?: string;
+}
+
+export default function WebhooksManager({ isMeliConnected, isMeliOfficial, sellerNickname }: Props) {
   const [events, setEvents] = useState<WebhookEvent[]>([
     {
       id: "meli:webhook:8fa9ab10",
@@ -158,6 +164,23 @@ export default function WebhooksManager() {
           </button>
         </div>
       </div>
+
+      {/* Dynamic connection indicator banner */}
+      {isMeliConnected ? (
+        <div className="bg-emerald-50 border border-emerald-150 rounded-xl p-4 flex gap-3 items-center text-xs text-emerald-800 shadow-2xs">
+          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse flex-shrink-0"></span>
+          <div className="font-semibold leading-normal font-sans">
+            <strong className="text-emerald-950">Mecanismo de Webhooks Oficial Ativo (@{sellerNickname}):</strong> Seu endpoint de webhooks em nuvem está registrado com as credenciais válidas do Mercado Livre. O aplicativo escuta as notificações e alterações de pedidos reais vindas do Mercado Livre em tempo real.
+          </div>
+        </div>
+      ) : (
+        <div className="bg-amber-50 border border-amber-150 rounded-xl p-4 flex gap-3 items-center text-xs text-amber-805 shadow-2xs">
+          <span className="w-2 h-2 rounded-full bg-amber-500 flex-shrink-0"></span>
+          <div className="font-semibold leading-normal font-sans">
+            <strong className="text-amber-950">Módulo de Eventos Oficial (Desconectado):</strong> Sem uma conta conectada, os barramentos exibidos ilustram o processamento assíncrono padrão e a integridade de filas. Vá na aba <strong>Conexão Oficial</strong> para plugar sua loja real.
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         

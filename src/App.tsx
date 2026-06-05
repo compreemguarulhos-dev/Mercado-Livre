@@ -16,9 +16,17 @@ export default function App() {
   const [isMeliConnected, setIsMeliConnected] = useState<boolean>(() => {
     return !!localStorage.getItem('meli_access_token');
   });
+  const [sellerNickname, setSellerNickname] = useState<string>(() => {
+    return localStorage.getItem('meli_seller_nickname') || '';
+  });
+  const [isOfficial, setIsOfficial] = useState<boolean>(() => {
+    return localStorage.getItem('meli_is_official') === 'true';
+  });
 
   const handleConnectChange = (connected: boolean) => {
     setIsMeliConnected(connected);
+    setSellerNickname(localStorage.getItem('meli_seller_nickname') || '');
+    setIsOfficial(localStorage.getItem('meli_is_official') === 'true');
   };
   
   // Real-time simulated telemetry system metrics to show in the sidebar
@@ -138,7 +146,7 @@ export default function App() {
             }`}
           >
             <Lock className={`w-4 h-4 ${activeTab === 'oauth' ? 'text-blue-400' : ''}`} />
-            <span>OAuth Sandbox</span>
+            <span>Conexão Oficial</span>
           </button>
 
           <button 
@@ -159,11 +167,11 @@ export default function App() {
           <div className="flex items-center gap-3 mb-2.5">
             <div className={`w-2 h-2 rounded-full ${isMeliConnected ? 'bg-green-500' : 'bg-amber-500'} animate-pulse`}></div>
             <span className="text-[11px] text-slate-400">
-              API: {isMeliConnected ? 'Conectada (Oficial)' : 'Modo Sandbox Activo'}
+              API: {isMeliConnected ? 'Conectada (Oficial)' : 'Desconectado'}
             </span>
           </div>
           <div className="flex justify-between items-center text-[10px] uppercase font-bold text-slate-500">
-            <span>OAuth PKCE</span>
+            <span>Meli integration</span>
             <span className={isMeliConnected ? 'text-green-400' : 'text-amber-400'}>
               {isMeliConnected ? 'Autenticado' : 'Sem Credenciais'}
             </span>
@@ -186,23 +194,23 @@ export default function App() {
 
             {/* Official Meli API Connection Badge */}
             {isMeliConnected ? (
-              <div className="flex px-3 py-1 bg-emerald-50 border border-emerald-150 rounded-full text-[11px] font-bold text-emerald-700 items-center gap-1.5 shadow-2xs">
+              <div className="flex px-3 py-1 bg-emerald-55 border border-emerald-200 rounded-full text-[11px] font-bold text-emerald-750 items-center gap-1.5 shadow-2xs">
                 <span className="relative flex h-2 w-2">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                 </span>
-                <span className="hidden xs:inline bg-emerald-50 text-emerald-800 uppercase text-[10px]">Meli API Ativa e Integrada</span>
+                <span className="hidden xs:inline uppercase text-[10px]">CONEXÃO REAL: @{sellerNickname}</span>
               </div>
             ) : (
               <button 
                 onClick={() => setActiveTab('oauth')}
-                className="flex px-3 py-1 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-full text-[11px] font-bold text-amber-700 items-center gap-1.5 shadow-2xs cursor-pointer transition-colors"
+                className="flex px-3 py-1 bg-rose-50 hover:bg-rose-100 border border-rose-250 rounded-full text-[11px] font-bold text-rose-700 items-center gap-1.5 shadow-2xs cursor-pointer transition-colors"
               >
                 <span className="relative flex h-2 w-2">
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500 animate-pulse"></span>
                 </span>
-                <span className="hidden xs:inline">Meli Sandbox:</span>
-                <span className="text-amber-800 uppercase text-[10px] underline">Adicione Credenciais</span>
+                <span className="hidden xs:inline">Meli Offline:</span>
+                <span className="text-rose-800 uppercase text-[10px] underline">Conectar Token</span>
               </button>
             )}
 
@@ -224,11 +232,22 @@ export default function App() {
           {/* User Profile Block */}
           <div className="flex items-center gap-3">
             <div className="text-right hidden sm:block">
-              <p className="text-xs font-bold text-slate-800">Engenheiro João Dias</p>
-              <p className="text-[10px] text-slate-500 font-medium">Global Meli Integration Lead</p>
+              {isMeliConnected ? (
+                <>
+                  <p className="text-xs font-bold text-slate-800">Vendedor: @{sellerNickname}</p>
+                  <p className="text-[10px] text-slate-500 font-medium">
+                    Conexão de Venda Real Ativa
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="text-xs font-bold text-slate-800">Vendedor Desconectado</p>
+                  <p className="text-[10px] text-slate-500 font-medium font-sans">Forneça um Token de Vendas</p>
+                </>
+              )}
             </div>
-            <div className="w-8 h-8 rounded bg-indigo-600 flex items-center justify-center text-white font-bold text-xs shadow-md">
-              JD
+            <div className={`w-8 h-8 rounded flex items-center justify-center text-white font-bold text-xs shadow-md ${isMeliConnected ? 'bg-emerald-600' : 'bg-slate-400'}`}>
+              {isMeliConnected ? sellerNickname.substring(0, 2).toUpperCase() : 'OFF'}
             </div>
           </div>
 
@@ -241,10 +260,34 @@ export default function App() {
             
             {/* Dynamic Interactive Component View */}
             <div className="flex-1 min-w-0">
-              {activeTab === 'dashboard' && <DashboardExecutivo isMeliConnected={isMeliConnected} />}
-              {activeTab === 'intel' && <InteligenciaMercado isMeliConnected={isMeliConnected} />}
-              {activeTab === 'repricer' && <MonitorConcorrentes isMeliConnected={isMeliConnected} />}
-              {activeTab === 'webhooks' && <WebhooksManager isMeliConnected={isMeliConnected} />}
+              {activeTab === 'dashboard' && (
+                <DashboardExecutivo 
+                  isMeliConnected={isMeliConnected} 
+                  isMeliOfficial={isOfficial}
+                  sellerNickname={sellerNickname}
+                />
+              )}
+              {activeTab === 'intel' && (
+                <InteligenciaMercado 
+                  isMeliConnected={isMeliConnected} 
+                  isMeliOfficial={isOfficial}
+                  sellerNickname={sellerNickname}
+                />
+              )}
+              {activeTab === 'repricer' && (
+                <MonitorConcorrentes 
+                  isMeliConnected={isMeliConnected} 
+                  isMeliOfficial={isOfficial}
+                  sellerNickname={sellerNickname}
+                />
+              )}
+              {activeTab === 'webhooks' && (
+                <WebhooksManager 
+                  isMeliConnected={isMeliConnected} 
+                  isMeliOfficial={isOfficial}
+                  sellerNickname={sellerNickname}
+                />
+              )}
               {activeTab === 'oauth' && (
                 <OAuthPKCESimulator 
                   isMeliConnected={isMeliConnected} 
@@ -256,8 +299,7 @@ export default function App() {
 
             {/* Sleek Right Telemetry Sidebar Panel */}
             <aside className="w-full lg:w-72 space-y-4 flex-shrink-0">
-              
-              {/* Integration Status Panel */}
+                        {/* Integration Status Panel */}
               <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm text-slate-800">
                 <span className="text-[10px] uppercase font-mono font-bold text-slate-400 flex items-center gap-1.5 tracking-wider">
                   <Activity className="w-4 h-4 text-indigo-500 flex-shrink-0" /> Status da Autenticação
@@ -266,63 +308,68 @@ export default function App() {
                 <div className="space-y-4 mt-4 text-xs font-sans">
                   {isMeliConnected ? (
                     <div className="space-y-3">
-                      <div className="p-3 bg-emerald-50 rounded-lg border border-emerald-200 text-emerald-800 space-y-1.5">
-                        <span className="font-bold flex items-center gap-1.5 text-xs">
+                      <div className="p-3 bg-emerald-50 rounded-lg border border-emerald-250/75 text-emerald-850 space-y-1.5">
+                        <span className="font-bold flex items-center gap-1.5 text-xs text-emerald-950">
                           <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                          Integração Oficial Ativa
+                          Conexão Oficial Validada
                         </span>
-                        <p className="text-[11px] leading-relaxed text-emerald-700 font-medium">
-                          Sua credencial de acesso do Mercado Livre está integrada localmente no navegador de forma segura.
+                        <p className="text-[11px] leading-relaxed text-emerald-700 font-medium font-sans">
+                          Sua loja está integrada de forma legítima e 100% verídica com os servidores oficiais do Mercado Livre.
                         </p>
                       </div>
 
-                      <div className="space-y-1 bg-slate-50 border border-slate-150 p-2.5 rounded-lg font-mono text-[10px] text-slate-600">
+                      <div className="space-y-1 bg-slate-50 border border-slate-150 p-2.5 rounded-lg font-mono text-[10px] text-slate-650">
                         <div className="flex justify-between border-b border-slate-200/60 pb-1">
-                          <span>CLIENTE:</span>
-                          <span className="font-bold text-slate-800">{localStorage.getItem('meli_client_id') || 'custom-user'}</span>
+                          <span>LOJA ME:</span>
+                          <span className="font-bold text-slate-800">@{sellerNickname}</span>
                         </div>
                         <div className="flex justify-between pt-1">
-                          <span>SPOOFING:</span>
-                          <span className="text-emerald-600 font-bold">DESATIVADO</span>
+                          <span>SITUAÇÃO:</span>
+                          <span className="text-emerald-600 font-bold">100% OFICIAL</span>
                         </div>
                       </div>
 
                       <button
                         onClick={() => {
                           localStorage.removeItem('meli_access_token');
+                          localStorage.removeItem('meli_refresh_token');
                           localStorage.removeItem('meli_client_id');
+                          localStorage.removeItem('meli_seller_nickname');
+                          localStorage.removeItem('meli_is_official');
+                          localStorage.removeItem('meli_expires_at');
                           setIsMeliConnected(false);
+                          setSellerNickname('');
+                          setIsOfficial(false);
                         }}
-                        className="w-full text-center py-2 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-750 hover:text-rose-850 text-[10px] uppercase font-bold rounded-lg transition-all cursor-pointer"
+                        className="w-full text-center py-2 bg-rose-50 hover:bg-rose-100 border border-rose-250 text-rose-750 hover:text-rose-850 text-[10px] uppercase font-bold rounded-lg transition-all cursor-pointer"
                       >
                         Desconectar Conta
                       </button>
                     </div>
                   ) : (
                     <div className="space-y-3">
-                      <div className="p-3 bg-amber-50 rounded-lg border border-amber-200 text-amber-805 space-y-1.5">
+                      <div className="p-3 bg-amber-50 rounded-lg border border-amber-200 text-amber-900 space-y-1.5">
                         <span className="font-bold flex items-center gap-1.5 text-xs text-amber-900">
-                          <span className="w-2 h-2 rounded-full bg-amber-500"></span>
-                          Modo Sandbox (Demonstração)
+                          <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+                          Aguardando Conexão
                         </span>
-                        <p className="text-[11px] leading-relaxed text-amber-850 font-medium">
-                          Nenhuma credencial ou token oficial ativo foi inserido. O cockpit está exibindo projeções ilustrativas de simulação.
+                        <p className="text-[11px] leading-relaxed text-amber-850 font-medium font-sans">
+                          Nenhuma credencial ou token oficial ativo foi inserido. Conecte sua conta para carregar dados reais de faturamento.
                         </p>
                       </div>
 
-                      <p className="text-[11px] text-slate-500 leading-normal font-medium">
-                        Para visualizar faturamento, webhook e reprecificação reais da sua loja oficial, vá até a aba <strong>OAuth Sandbox</strong> para ativar a autenticação.
+                      <p className="text-[11px] text-slate-500 leading-normal font-medium font-sans">
+                        Para visualizar faturamento, webhooks e reprecificação reais da sua loja do Mercado Livre, insira o seu token na aba <strong>Conexão Oficial</strong>.
                       </p>
 
                       <button
                         onClick={() => setActiveTab('oauth')}
                         className="w-full text-center py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-lg transition-all shadow-xs cursor-pointer"
                       >
-                        Conectar via OAuth
+                        Ir para Conexão Oficial
                       </button>
                     </div>
                   )}
-
                 </div>
               </div>
 

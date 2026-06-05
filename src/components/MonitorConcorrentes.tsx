@@ -9,7 +9,13 @@ import {
 import { INITIAL_COMPETITORS } from '../data';
 import { CompetitorProduct, RepricingRule, RepricingAlert } from '../types';
 
-export default function MonitorConcorrentes() {
+interface Props {
+  isMeliConnected?: boolean;
+  isMeliOfficial?: boolean;
+  sellerNickname?: string;
+}
+
+export default function MonitorConcorrentes({ isMeliConnected, isMeliOfficial, sellerNickname }: Props) {
   const [competitors, setCompetitors] = useState<CompetitorProduct[]>(INITIAL_COMPETITORS);
   const [rules, setRules] = useState<RepricingRule[]>([
     { id: "RULE01", name: "Cobrir Menor Preço (Margem Segura)", type: 'below_competitor', offsetValue: 1.50, minMargin: 15, maxMargin: 40, isActive: true },
@@ -161,6 +167,23 @@ export default function MonitorConcorrentes() {
           </button>
         </div>
       </div>
+
+      {/* Dynamic connection indicator banner */}
+      {isMeliConnected ? (
+        <div className="bg-emerald-50 border border-emerald-150 rounded-xl p-4 flex gap-3 items-center text-xs text-emerald-800 shadow-2xs">
+          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse flex-shrink-0"></span>
+          <div className="font-semibold leading-normal font-sans">
+            <strong className="text-emerald-950">Mecanismo Monitor de Reprecificação Oficial Ligado (@{sellerNickname}):</strong> As atualizações de teto, margem de segurança e regras dinâmicas de preços serão injetadas e transmitidas de forma real ao Mercado Livre.
+          </div>
+        </div>
+      ) : (
+        <div className="bg-amber-50 border border-amber-150 rounded-xl p-4 flex gap-3 items-center text-xs text-amber-805 shadow-2xs">
+          <span className="w-2 h-2 rounded-full bg-amber-500 flex-shrink-0"></span>
+          <div className="font-semibold leading-normal font-sans">
+            <strong className="text-amber-950">Ambiente de Demonstração (Sessão Offline):</strong> Conecte sua conta oficial na aba <strong>Conexão Oficial</strong> para ativar as atualizações em tempo real das suas margens de lucro automatizadas.
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 

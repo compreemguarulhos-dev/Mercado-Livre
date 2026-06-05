@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   Search, TrendingUp, HelpCircle, Trophy, Filter, 
   Sparkles, CheckCircle2, Truck, ShoppingBag, BadgeInfo,
-  DollarSign, Landmark, ArrowUpDown, ChevronRight, Zap, Info
+  DollarSign, Landmark, ArrowUpDown, ChevronRight, Zap, Info, ShieldAlert
 } from 'lucide-react';
 
 // Friendly Meli Item structure focusing on client outcomes
@@ -22,9 +22,11 @@ interface MeliItem {
 
 interface Props {
   isMeliConnected?: boolean;
+  isMeliOfficial?: boolean;
+  sellerNickname?: string;
 }
 
-export default function InteligenciaMercado({ isMeliConnected }: Props) {
+export default function InteligenciaMercado({ isMeliConnected, isMeliOfficial, sellerNickname }: Props) {
   // Simple friendly state
   const [selectedCountry, setSelectedCountry] = useState<'BR' | 'MX' | 'AR'>('BR');
   const [searchQuery, setSearchQuery] = useState('smartphone');
@@ -36,6 +38,7 @@ export default function InteligenciaMercado({ isMeliConnected }: Props) {
   // Loading and results matching state
   const [results, setResults] = useState<MeliItem[]>([]);
   const [loading, setLoading] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
 
   // Quick templates for lay user to click
   const quickCategories = [
@@ -59,13 +62,14 @@ export default function InteligenciaMercado({ isMeliConnected }: Props) {
   // Live fetch query directly from the official public Mercado Livre Search API (no authentication required)
   useEffect(() => {
     setLoading(true);
+    setSearchError(null);
     const controller = new AbortController();
 
     const siteId = selectedCountry === 'BR' ? 'MLB' : selectedCountry === 'MX' ? 'MLM' : 'MLA';
     const cleanQuery = encodeURIComponent(searchQuery.trim() || 'smartphone');
     
-    // Official public API endpoint
-    const url = `https://api.mercadolibre.com/sites/${siteId}/search?q=${cleanQuery}&limit=24`;
+    // Official public API endpoint routed via securely pre-configured proxy to avoid CORS/network issues
+    const url = `/api/meli/search?siteId=${siteId}&q=${cleanQuery}&limit=24`;
 
     fetch(url, { signal: controller.signal })
       .then(res => {
@@ -147,6 +151,7 @@ export default function InteligenciaMercado({ isMeliConnected }: Props) {
       .catch(err => {
         if (err.name === 'AbortError') return;
         console.error("Falha ao buscar na API do Meli:", err);
+        setSearchError("Falha ao buscar na API pública do Mercado Livre. Verifique sua conexão ou tente novamente mais tarde.");
         setResults([]);
         setLoading(false);
       });
@@ -168,22 +173,40 @@ export default function InteligenciaMercado({ isMeliConnected }: Props) {
     <div className="space-y-6">
       
       {/* 🌟 1. Cabeçalho de Confirmação Oficial - Amistoso para Leigos */}
-      <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-5 shadow-2xs">
-        <div className="flex gap-4 items-start">
-          <div className="bg-emerald-600 p-2 text-white rounded-lg flex-shrink-0 mt-0.5">
-            <CheckCircle2 className="w-5 h-5 stroke-[2.5]" />
-          </div>
-          <div className="space-y-1">
-            <h3 className="text-sm font-bold text-emerald-900 flex items-center gap-1.5">
-              Conexão com Mercado Livre Ativa e Verificada
-            </h3>
-            <p className="text-xs text-emerald-800 leading-relaxed font-medium">
-              <strong>Sim! Todas as informações e pesquisas feitas aqui vêm diretamente do banco oficial de dados do Mercado Livre.</strong> 
-              Nossas consultas utilizam a moderna infraestrutura da plataforma para garantir que os preços, frete grátis e quantidades vendidas correspondam exatamente aos do mercado atualizado em tempo real.
-            </p>
+      {isMeliConnected ? (
+        <div className="bg-emerald-50 border border-emerald-150 rounded-xl p-5 shadow-2xs">
+          <div className="flex gap-4 items-start">
+            <div className="bg-emerald-600 p-2 text-white rounded-lg flex-shrink-0 mt-0.5">
+              <CheckCircle2 className="w-5 h-5 stroke-[2.5]" />
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-sm font-bold text-emerald-900 flex items-center gap-1.5">
+                Conectado à API Oficial do Mercado Livre: @{sellerNickname}
+              </h3>
+              <p className="text-xs text-emerald-800 leading-relaxed font-medium">
+                <strong>Suas consultas de mercado, anúncios e inteligência vêm diretamente dos servidores reais do Mercado Livre.</strong> 
+                Nossas rotas realizam a modernização de payload em tempo real de forma segura, garantindo alta velocidade de faturamento, monitoramento de sellers concorrentes e alteração dinâmica de preços.
+              </p>
+            </div>
           </div>
         </div>
-      </div>
+      ) : (
+        <div className="bg-amber-50 border border-amber-150 rounded-xl p-5 shadow-2xs">
+          <div className="flex gap-4 items-start">
+            <div className="bg-amber-600 p-2 text-white rounded-lg flex-shrink-0 mt-0.5">
+              <ShieldAlert className="w-5 h-5" />
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-sm font-bold text-amber-900">
+                Aviso: Conta Oficial Desconectada
+              </h3>
+              <p className="text-xs text-amber-800 leading-relaxed font-medium">
+                Sua loja não está conectada. <strong>Para buscar anúncios, o app está utilizando a API pública oficial do Mercado Livre</strong>, porém os módulos de acompanhamento de vendas, faturamento automático e reprecificação inteligente exibidos no painel estão offline. Por favor, conecte sua conta para usufruir da automação.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 🌟 2. Cartão Didático de Explicação de Performance (Sem Jargão mas transparente) */}
       <div className="bg-gradient-to-r from-indigo-50 to-blue-50 border border-indigo-150 rounded-xl p-5 shadow-2xs">
@@ -424,6 +447,17 @@ export default function InteligenciaMercado({ isMeliConnected }: Props) {
             <div className="bg-white border border-slate-200 rounded-xl p-24 text-center flex flex-col items-center justify-center space-y-3 shadow-sm">
               <div className="w-9 h-9 rounded-full border-3 border-indigo-600 border-t-transparent animate-spin" />
               <p className="text-xs text-slate-500 font-bold">Consultando banco oficial do Mercado Livre...</p>
+            </div>
+          ) : searchError ? (
+            <div className="bg-rose-50 border border-rose-200 text-rose-800 rounded-xl p-12 text-center flex flex-col items-center justify-center space-y-3 shadow-xs">
+              <ShieldAlert className="w-12 h-12 text-rose-500 animate-pulse" />
+              <h3 className="text-sm font-bold text-rose-900">Falha ao buscar na API do Meli</h3>
+              <p className="text-xs text-rose-700 max-w-md leading-relaxed font-semibold">
+                {searchError}
+              </p>
+              <div className="text-[11px] text-rose-600 font-medium font-mono pt-1">
+                Isso pode ocorrer devido a problemas de rede externa ou instabilidade momentânea nos servidores da API pública do Mercado Livre.
+              </div>
             </div>
           ) : results.length === 0 ? (
             <div className="bg-white border border-slate-200 rounded-xl p-16 text-center flex flex-col items-center justify-center space-y-3.5 shadow-sm">
