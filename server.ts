@@ -42,6 +42,15 @@ async function startServer() {
     }
   });
 
+  // API Route - Expose non-sensitive Mercado Livre Config from Environment Variables
+  app.get("/api/meli/config", (req, res) => {
+    res.json({
+      clientId: process.env.MELI_CLIENT_ID || "",
+      redirectUri: process.env.MELI_REDIRECT_URI || "https://mercado-livre-plum.vercel.app",
+      hasSecret: !!process.env.MELI_CLIENT_SECRET
+    });
+  });
+
   // API Route - Proxy Secure OAuth 2.0 Token Exchange and Refresh
   app.post("/api/meli/oauth/token", async (req, res) => {
     try {
@@ -51,17 +60,21 @@ async function startServer() {
         return res.status(400).json({ message: "grant_type is required" });
       }
 
+      const finalClientId = String(client_id || process.env.MELI_CLIENT_ID || '');
+      const finalClientSecret = String(client_secret || process.env.MELI_CLIENT_SECRET || '');
+      const finalRedirectUri = String(redirect_uri || process.env.MELI_REDIRECT_URI || "https://mercado-livre-plum.vercel.app");
+
       const params = new URLSearchParams();
       params.append("grant_type", grant_type);
-      params.append("client_id", String(client_id || ''));
-      params.append("client_secret", String(client_secret || ''));
+      params.append("client_id", finalClientId);
+      params.append("client_secret", finalClientSecret);
 
       if (grant_type === "authorization_code") {
-        if (!code || !redirect_uri) {
-          return res.status(400).json({ message: "code and redirect_uri are required for authorization_code grant" });
+        if (!code) {
+          return res.status(400).json({ message: "code is required for authorization_code grant" });
         }
         params.append("code", code);
-        params.append("redirect_uri", redirect_uri);
+        params.append("redirect_uri", finalRedirectUri);
       } else if (grant_type === "refresh_token") {
         if (!refresh_token) {
           return res.status(400).json({ message: "refresh_token is required for refresh_token grant" });

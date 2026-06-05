@@ -19,6 +19,9 @@ export default function OAuthPKCESimulator({ isMeliConnected, onConnectChange }:
   // Tabs: 'token' = Direct Access Token, 'oauth' = Full Auth Code / Client Secret
   const [activeSubTab, setActiveSubTab] = useState<'token' | 'oauth'>('token');
 
+  // Server configuration loaded from environment variables
+  const [serverConfig, setServerConfig] = useState<{ clientId: string; redirectUri: string; hasSecret: boolean } | null>(null);
+
   // Direct Token State
   const [manualToken, setManualToken] = useState(() => {
     return localStorage.getItem('meli_access_token') || '';
@@ -96,12 +99,32 @@ export default function OAuthPKCESimulator({ isMeliConnected, onConnectChange }:
 
   // URL Query Param detection for callback redirect
   useEffect(() => {
+    // Fetch configuration from Server variables on mount
+    fetch('/api/meli/config')
+      .then(res => res.json())
+      .then(data => {
+        setServerConfig(data);
+        if (data.clientId) {
+          setClientId(data.clientId);
+          addLog(`⚡ Configurações de ambiente carregadas do Servidor: Client ID detectado (${data.clientId})`);
+        }
+        if (data.hasSecret) {
+          addLog("🔒 Client Secret seguro pré-configurado no backend. O preenchimento manual é opcional!");
+        }
+        if (data.redirectUri) {
+          addLog(`🌐 Redirect URI prioritário: ${data.redirectUri}`);
+        }
+      })
+      .catch(err => {
+        console.error("Falha ao carregar as variáveis de ambiente:", err);
+      });
+
     const params = new URLSearchParams(window.location.search);
     const codeParam = params.get('code');
     if (codeParam) {
       setDetectedCode(codeParam);
       addLog(`🔔 Código de Autorização detectado nos parâmetros de URL: ${codeParam}`);
-      addLog(`Você foi redirecionador de volta do Mercado Livre. Preencha seu Client Secret abaixo para realizar a troca.`);
+      addLog("Você foi redirecionador de volta do Mercado Livre. O servidor usará as credenciais de ambiente para trocar pelo token real.");
       setActiveSubTab('oauth');
     }
 
@@ -192,23 +215,24 @@ export default function OAuthPKCESimulator({ isMeliConnected, onConnectChange }:
 
   // Launch real redirects
   const handleLaunchAuthRedirect = () => {
-    if (!clientId.trim()) {
+    const finalClientId = clientId.trim() || serverConfig?.clientId || '';
+    if (!finalClientId) {
       setValidationError("O Client ID da sua aplicação Meli é obrigatório para gerar o link.");
       return;
     }
     
     // Save Client ID for persistence
-    localStorage.setItem('meli_oauth_client_id', clientId.trim());
+    localStorage.setItem('meli_oauth_client_id', finalClientId);
     localStorage.setItem('meli_oauth_country', selectedCountry);
     if (clientSecret.trim()) {
       localStorage.setItem('meli_oauth_client_secret', clientSecret.trim());
     }
 
     const domain = getAuthDomain(selectedCountry);
-    const redirectUri = window.location.origin + window.location.pathname;
+    const redirectUri = serverConfig?.redirectUri || (window.location.origin + window.location.pathname);
     const state = Math.random().toString(36).substring(7);
 
-    const targetUrl = `https://${domain}/authorization?response_type=code&client_id=${clientId.trim()}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}`;
+    const targetUrl = `https://${domain}/authorization?response_type=code&client_id=${finalClientId}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}`;
     
     addLog(`🔗 Gerando redirecionamento robusto e seguro do OAuth 2.0...`);
     addLog(`Redirect URI configurado: ${redirectUri}`);
@@ -222,22 +246,35 @@ export default function OAuthPKCESimulator({ isMeliConnected, onConnectChange }:
   // Exchanging auth code for access token via our secure server proxy
   const handleExchangeCode = async () => {
     if (!detectedCode) return;
-    if (!clientId.trim() || !clientSecret.trim()) {
-      setValidationError("Para realizar a troca do código pelo Token real, o Client ID e Client Secret são exigidos.");
+    
+    const finalClientId = clientId.trim() || serverConfig?.clientId || '';
+    const finalClientSecret = clientSecret.trim() || '';
+
+    if (!finalClientId) {
+      setValidationError("Para realizar a troca do código pelo Token real, o Client ID é exigido.");
+      return;
+    }
+
+    if (!finalClientSecret && !serverConfig?.hasSecret) {
+      setValidationError("Para realizar a troca do código pelo Token real, o Client Secret é exigido ou deve estar configurado no servidor.");
       return;
     }
 
     setIsValidating(true);
     setValidationError(null);
 
-    // Save Client ID & secret in localStorage
-    localStorage.setItem('meli_oauth_client_id', clientId.trim());
-    localStorage.setItem('meli_oauth_client_secret', clientSecret.trim());
+    // Save Client ID & secret in localStorage if provided
+    if (clientId.trim()) {
+      localStorage.setItem('meli_oauth_client_id', clientId.trim());
+    }
+    if (clientSecret.trim()) {
+      localStorage.setItem('meli_oauth_client_secret', clientSecret.trim());
+    }
     localStorage.setItem('meli_oauth_country', selectedCountry);
 
     addLog(`📡 Realizando Code Exchange robusto via POST /api/meli/oauth/token...`);
 
-    const redirectUri = window.location.origin + window.location.pathname;
+    const redirectUri = serverConfig?.redirectUri || (window.location.origin + window.location.pathname);
 
     try {
       const response = await fetch("/api/meli/oauth/token", {
@@ -247,8 +284,8 @@ export default function OAuthPKCESimulator({ isMeliConnected, onConnectChange }:
         },
         body: JSON.stringify({
           grant_type: "authorization_code",
-          client_id: clientId.trim(),
-          client_secret: clientSecret.trim(),
+          client_id: finalClientId,
+          client_secret: finalClientSecret,
           code: detectedCode,
           redirect_uri: redirectUri
         })
@@ -299,8 +336,17 @@ export default function OAuthPKCESimulator({ isMeliConnected, onConnectChange }:
       setValidationError("Nenhum Refresh Token está armazenado nesta sessão para testar a renovação.");
       return;
     }
-    if (!clientId.trim() || !clientSecret.trim()) {
-      setValidationError("Client ID e Client Secret salvos são necessários para realizar o refresh.");
+    
+    const finalClientId = clientId.trim() || serverConfig?.clientId || '';
+    const finalClientSecret = clientSecret.trim() || '';
+
+    if (!finalClientId) {
+      setValidationError("O Client ID é exigido para realizar a renovação.");
+      return;
+    }
+
+    if (!finalClientSecret && !serverConfig?.hasSecret) {
+      setValidationError("O Client Secret é exigido ou deve estar configurado no servidor.");
       return;
     }
 
@@ -317,8 +363,8 @@ export default function OAuthPKCESimulator({ isMeliConnected, onConnectChange }:
         },
         body: JSON.stringify({
           grant_type: "refresh_token",
-          client_id: clientId.trim(),
-          client_secret: clientSecret.trim(),
+          client_id: finalClientId,
+          client_secret: finalClientSecret,
           refresh_token: rt
         })
       });
@@ -500,8 +546,11 @@ export default function OAuthPKCESimulator({ isMeliConnected, onConnectChange }:
               <div className="p-5 space-y-4 text-xs">
                 {!isMeliConnected ? (
                   <div className="space-y-4">
-                    <div className="p-3.5 bg-slate-950 border border-slate-850 rounded-lg text-slate-400 leading-relaxed font-sans">
-                      Para conectar rapidamente e evitar parametrizações de credenciais, você pode colar seu <strong>Access Token Pessoal</strong> gerado na página de credenciais do desenvolvedor do Mercado Livre (geralmente inicia com <code>APP_USR-</code>).
+                     <div className="p-[1px] bg-gradient-to-r from-cyan-500 to-indigo-500 rounded-lg">
+                      <div className="bg-slate-950 p-3 rounded-lg text-slate-350 leading-relaxed font-sans">
+                        <span className="text-cyan-400 font-bold block mb-1 font-mono text-[11px] uppercase tracking-wider">🌟 Dica de Produtividade</span>
+                        Suas credenciais (<strong>Client ID</strong>, <strong>Client Secret</strong> e <strong>Redirect URI</strong>) estão sendo lidas de forma segura das variáveis de ambiente do seu servidor. O endereço registrado no seu Mercado Livre é <code>{serverConfig?.redirectUri || "https://mercado-livre-plum.vercel.app"}</code>.
+                      </div>
                     </div>
 
                     <div className="space-y-1.5">
@@ -607,20 +656,22 @@ export default function OAuthPKCESimulator({ isMeliConnected, onConnectChange }:
               <div className="p-5 space-y-4 text-xs">
                 <div className="p-3.5 bg-slate-950 border border-slate-850 rounded-lg text-slate-300 leading-relaxed select-text space-y-1.5 font-sans">
                   <p>
-                    Com este método, você pode executar o fluxo de autorização completo de servidores reais. Registre sua aplicação no painel com o seguinte endereço de retorno:
+                    Registre sua aplicação no painel do Mercado Livre configurando exatamente este endereço de retorno:
                   </p>
-                  <div className="bg-slate-900 p-2 rounded border border-slate-800 font-mono text-cyan-400 break-all select-all flex justify-between items-center text-[10px]">
-                    <code>{window.location.origin + window.location.pathname}</code>
-                    <span className="text-[8px] text-slate-500 font-bold ml-2">REDIRECT URI</span>
+                  <div className="bg-slate-900 p-2.5 rounded border border-slate-800 font-mono text-cyan-400 break-all select-all flex justify-between items-center text-[10px]">
+                    <code>{serverConfig?.redirectUri || "https://mercado-livre-plum.vercel.app"}</code>
+                    <span className="text-[8px] bg-cyan-950 text-cyan-300 border border-cyan-800 px-1.5 py-0.5 rounded font-bold ml-2">REDIRECT URI</span>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
-                    <label className="text-[10px] text-cyan-400 block font-bold font-mono">CLIENT_ID (APP_ID):</label>
+                    <label className="text-[10px] text-cyan-400 block font-bold font-mono uppercase">
+                      CLIENT_ID (APP_ID): {serverConfig?.clientId && <span className="text-emerald-450 text-[9px] font-sans font-bold">(✓ Carregado do Env)</span>}
+                    </label>
                     <input 
                       type="text" 
-                      placeholder="Ex: 1620218256..." 
+                      placeholder={serverConfig?.clientId || "Ex: 1620218256..."} 
                       value={clientId} 
                       disabled={isMeliConnected || isValidating}
                       onChange={(e) => setClientId(e.target.value)} 
@@ -629,14 +680,16 @@ export default function OAuthPKCESimulator({ isMeliConnected, onConnectChange }:
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-[10px] text-cyan-400 block font-bold font-mono">CLIENT_SECRET (SECRET_KEY):</label>
+                    <label className="text-[10px] text-cyan-400 block font-bold font-mono uppercase">
+                      CLIENT_SECRET (SECRET_KEY): {serverConfig?.hasSecret && <span className="text-emerald-450 text-[9px] font-sans font-bold">(✓ Protegido no Servidor)</span>}
+                    </label>
                     <input 
                       type="password" 
-                      placeholder="Ex: u8Dsnv82A..." 
+                      placeholder={serverConfig?.hasSecret ? "••••••••••••••••••••••••••••" : "Ex: u8Dsnv82A..."} 
                       value={clientSecret} 
-                      disabled={isMeliConnected || isValidating}
+                      disabled={isMeliConnected || isValidating || !!serverConfig?.hasSecret}
                       onChange={(e) => setClientSecret(e.target.value)} 
-                      className="w-full bg-slate-950 border border-slate-800 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/20 p-2.5 rounded text-slate-200 font-mono outline-none text-xs disabled:opacity-50" 
+                      className="w-full bg-slate-950 border border-slate-800 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/20 p-2.5 rounded text-slate-200 font-mono outline-none text-xs disabled:opacity-50 disabled:bg-slate-950" 
                     />
                   </div>
                 </div>
@@ -673,7 +726,7 @@ export default function OAuthPKCESimulator({ isMeliConnected, onConnectChange }:
                   <div className="pt-2">
                     <button 
                       onClick={handleLaunchAuthRedirect}
-                      disabled={!clientId.trim() || isValidating}
+                      disabled={!(clientId.trim() || serverConfig?.clientId) || isValidating}
                       className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed border border-indigo-700 text-white font-bold rounded-lg flex items-center gap-1.5 transition-all cursor-pointer shadow-md text-xs font-mono"
                     >
                       <Link2 className="w-4 h-4" /> Iniciar Login com Mercado Livre
