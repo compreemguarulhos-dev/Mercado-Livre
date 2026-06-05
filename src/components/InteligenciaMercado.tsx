@@ -29,7 +29,7 @@ interface Props {
 
 export default function InteligenciaMercado({ isMeliConnected, isMeliOfficial, sellerNickname }: Props) {
   // Simple friendly state
-  const [selectedCountry, setSelectedCountry] = useState<'BR' | 'MX' | 'AR'>('BR');
+  const [selectedCountry, setSelectedCountry] = useState<'BR'>('BR');
   const [searchQuery, setSearchQuery] = useState('smartphone');
   const [onlyNew, setOnlyNew] = useState<'all' | 'new' | 'used'>('all');
   const [onlyFreeShipping, setOnlyFreeShipping] = useState(true);
@@ -50,14 +50,11 @@ export default function InteligenciaMercado({ isMeliConnected, isMeliOfficial, s
   ];
 
   const getCurrencySymbol = () => {
-    if (selectedCountry === 'BR') return 'R$';
-    return '$';
+    return 'R$';
   };
 
   const getCountryName = () => {
-    if (selectedCountry === 'BR') return 'Brasil';
-    if (selectedCountry === 'MX') return 'México';
-    return 'Argentina';
+    return 'Brasil';
   };
 
   // Live fetch query directly from the official public Mercado Livre Search API (no authentication required)
@@ -66,13 +63,21 @@ export default function InteligenciaMercado({ isMeliConnected, isMeliOfficial, s
     setSearchError(null);
     const controller = new AbortController();
 
-    const siteId = selectedCountry === 'BR' ? 'MLB' : selectedCountry === 'MX' ? 'MLM' : 'MLA';
+    const siteId = 'MLB';
     const cleanQuery = encodeURIComponent(searchQuery.trim() || 'smartphone');
     
     // Official public API endpoint routed via securely pre-configured proxy to avoid CORS/network issues
     const url = getApiUrl(`/api/meli/search?siteId=${siteId}&q=${cleanQuery}&limit=24`);
 
-    fetch(url, { signal: controller.signal })
+    const headers: Record<string, string> = {
+      "Accept": "application/json"
+    };
+    const token = localStorage.getItem('meli_access_token');
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    fetch(url, { signal: controller.signal, headers })
       .then(res => {
         if (!res.ok) throw new Error("Erro na rede ao tentar buscar no Mercado Livre");
         return res.json();
@@ -227,24 +232,12 @@ export default function InteligenciaMercado({ isMeliConnected, isMeliOfficial, s
           </p>
         </div>
 
-        {/* Simplificação de País */}
-        <div className="bg-slate-100 p-1 rounded-lg border border-slate-200 flex items-center gap-1.5 w-full md:w-auto">
-          <span className="text-[10px] font-bold text-slate-500 px-2 uppercase font-mono">Pesquisar no:</span>
-          {(['BR', 'MX', 'AR'] as const).map((country) => (
-            <button
-              key={country}
-              onClick={() => setSelectedCountry(country)}
-              className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all cursor-pointer ${
-                selectedCountry === country 
-                  ? 'bg-white text-slate-900 shadow-2xs border border-slate-200' 
-                  : 'text-slate-500 hover:text-slate-800'
-              }`}
-            >
-              {country === 'BR' && 'Brasil 🇧🇷'}
-              {country === 'MX' && 'México 🇲🇽'}
-              {country === 'AR' && 'Argentina 🇦🇷'}
-            </button>
-          ))}
+        {/* Território Fixo Brasil */}
+        <div className="bg-slate-50 border border-slate-200 py-2 px-3 rounded-xl flex items-center gap-2 select-none">
+          <span className="text-[10px] font-bold text-slate-400 uppercase font-mono tracking-wider">Território Ativo:</span>
+          <span className="text-xs font-black text-slate-800 flex items-center gap-1.5 uppercase">
+            Brasil 🇧🇷 <span className="text-[10px] text-indigo-600 font-mono font-bold">(MLB)</span>
+          </span>
         </div>
       </div>
 

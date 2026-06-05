@@ -71,8 +71,8 @@ interface Props {
 }
 
 export default function OportunidadesMercado({ isMeliConnected, isMeliOfficial, sellerNickname }: Props) {
-  // Global country selection consistent with other modules
-  const [selectedCountry, setSelectedCountry] = useState<'BR' | 'MX' | 'AR'>('BR');
+  // Global country selection consistent with other modules (Enforced to Brazil)
+  const [selectedCountry, setSelectedCountry] = useState<'BR'>('BR');
   const [activeSubTab, setActiveSubTab] = useState<'picker' | 'winners' | 'keywords' | 'competitors'>('picker');
   const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
@@ -158,7 +158,15 @@ export default function OportunidadesMercado({ isMeliConnected, isMeliOfficial, 
     const siteId = getSiteId();
     const url = getApiUrl(`/api/meli/categories?siteId=${siteId}`);
 
-    fetch(url)
+    const headers: Record<string, string> = {
+      "Accept": "application/json"
+    };
+    const token = localStorage.getItem('meli_access_token');
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    fetch(url, { headers })
       .then(res => {
         if (!res.ok) throw new Error("Erro de rede nas categorias");
         return res.json();
@@ -200,7 +208,15 @@ export default function OportunidadesMercado({ isMeliConnected, isMeliOfficial, 
     setSubLoading(true);
     const url = getApiUrl(`/api/meli/categories/${selectedCategory}`);
 
-    fetch(url)
+    const headers: Record<string, string> = {
+      "Accept": "application/json"
+    };
+    const token = localStorage.getItem('meli_access_token');
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    fetch(url, { headers })
       .then(res => {
         if (!res.ok) throw new Error("Erro ao detalhar categoria");
         return res.json();
@@ -284,7 +300,15 @@ export default function OportunidadesMercado({ isMeliConnected, isMeliOfficial, 
     // We trigger the proxy endpoint
     const url = getApiUrl(`/api/meli/search?siteId=${siteId}&q=${cleanWord}&limit=50`);
 
-    fetch(url)
+    const headers: Record<string, string> = {
+      "Accept": "application/json"
+    };
+    const token = localStorage.getItem('meli_access_token');
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    fetch(url, { headers })
       .then(res => {
         if (!res.ok) throw new Error("Erro na rede do buscaprodutos");
         return res.json();
@@ -1338,18 +1362,10 @@ export default function OportunidadesMercado({ isMeliConnected, isMeliOfficial, 
                   <p className="text-xs text-slate-500">Configure cruzamentos de dados avançados semelhantes ao painel JoomPulse para identificar brechas exclusivas.</p>
                 </div>
                 
-                <div className="flex items-center gap-3">
-                  <span className="text-[10px] uppercase font-mono font-bold text-slate-400">Canal:</span>
-                  <div className="flex items-center bg-white border border-slate-200 rounded-lg p-0.5 text-xs font-mono shadow-2xs">
-                    {(['BR', 'MX', 'AR'] as const).map((country) => (
-                      <button
-                        key={country}
-                        onClick={() => setSelectedCountry(country)}
-                        className={`px-3 py-1.5 rounded-md transition-colors font-bold ${selectedCountry === country ? 'bg-slate-900 text-white' : 'text-slate-500 hover:text-slate-800'}`}
-                      >
-                        Mercado Livre {country}
-                      </button>
-                    ))}
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] uppercase font-mono font-bold text-slate-400">Canal Ativo:</span>
+                  <div className="bg-white border border-slate-200 rounded-lg py-1 px-3 text-xs font-bold text-slate-800 flex items-center gap-1.5 shadow-2xs select-none">
+                    Brasil 🇧🇷 <span className="text-[10px] font-mono text-indigo-600 font-extrabold">(MLB)</span>
                   </div>
                 </div>
               </div>

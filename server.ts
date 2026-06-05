@@ -133,48 +133,48 @@ async function startServer() {
     }
   });
 
-  // Helper for generating incredibly high-fidelity mock search results on any network or rate limit failure
+  // Helper for generating incredibly high-fidelity mock search results of real e-commerce products on any network or rate limit failure
   function generateMockSearchResults(q: string, limit: any): any {
     const queryStr = String(q || 'smartphone').trim();
     const lowerQuery = queryStr.toLowerCase();
     const count = Number(limit || 24);
 
     const baseItems = [
-      { id: "32391039", titleSuffix: "Bluetooth Headset v5.4 Pro Edition AirMax", price: 189.90, imgType: "headphone" },
-      { id: "32391040", titleSuffix: "Super Carregador GaN 65W Turbo Tipo-C Pro", price: 114.50, imgType: "charger" },
-      { id: "32394042", titleSuffix: "Cabo USB-C Nylon Trançado Reforçado 2m Ultra", price: 45.00, imgType: "cable" },
-      { id: "32392095", titleSuffix: "Teclado Mecânico Compacto RGB Gamer Bluetooth", price: 349.90, imgType: "keyboard" },
-      { id: "32393301", titleSuffix: "Mouse Sem Fio Ergonômico Recarregável Vertical Pro", price: 149.00, imgType: "mouse" },
-      { id: "32397720", titleSuffix: "Mochila Impermeável Anti-Furto Notebook USB Slim", price: 159.00, imgType: "backpack" },
-      { id: "32396102", titleSuffix: "Smartwatch AMOLED Multi-Sports Tracker GPS Fit", price: 269.00, imgType: "watch" },
-      { id: "32395510", titleSuffix: "Mini Projetor Smart Cinema Android WiFi HD Home", price: 599.90, imgType: "projector" },
-      { id: "32403215", titleSuffix: "Umidificador Difusor de Ar Ultrassônico LED Purify", price: 79.90, imgType: "humidifier" },
-      { id: "32391082", titleSuffix: "Suporte Articulado de Mesa Ergonômico Alumínio", price: 89.90, imgType: "stand" },
-      { id: "32400122", titleSuffix: "Balança Digital Inox de Alta Precisão Cozinha 10kg", price: 19.90, imgType: "scale" },
-      { id: "32398845", titleSuffix: "Lâmpada Inteligente RGB Smart Home Alexa Google 12W", price: 39.90, imgType: "lamp" },
-      { id: "32399990", titleSuffix: "Tripé Flexível para Celular Ring Light Bluetooth", price: 24.50, imgType: "tripod" },
-      { id: "32402130", titleSuffix: "Liquidificador Portátil Squeeze USB Recarregável Fit", price: 79.90, imgType: "blender" },
-      { id: "32404450", titleSuffix: "Hub Conector USB-C Multi-Portas 8 em 1 HDMI Ethernet", price: 199.00, imgType: "hub" },
-      { id: "32391055", titleSuffix: "Organizador Resistente Multiuso de Mesa Acrílico", price: 29.90, imgType: "organizer" }
+      { id: "88231039", titleSuffix: "Xiaomi Redmi Note 13 256GB 8GB RAM Versão Global", price: 1149.90, imgType: "smartphone" },
+      { id: "88231040", titleSuffix: "Carregador Portátil Power Bank 20050mAh Turbo Fast Charge", price: 129.50, imgType: "powerbank" },
+      { id: "88234042", titleSuffix: "Cabo USB-C Nylon Trançado Reforçado 2 Metros Inquebrável", price: 35.00, imgType: "cable" },
+      { id: "88232095", titleSuffix: "Teclado Mecânico Gamer Redragon Kumara K552 RGB Switch Blue", price: 239.90, imgType: "keyboard" },
+      { id: "88233301", titleSuffix: "Mouse Sem Fio Ergonômico Logitech Pebble M350 Bluetooth Silent", price: 119.00, imgType: "mouse" },
+      { id: "88237720", titleSuffix: "Mochila Impermeável Masculina Anti-Roubo para Notebook USB", price: 149.00, imgType: "backpack" },
+      { id: "88236102", titleSuffix: "Smartwatch AMOLED Multi-Sport GPS Integrado Inteligente Pro", price: 289.00, imgType: "watch" },
+      { id: "88235510", titleSuffix: "Mini Projetor Portátil Smart Wifi Integrado Full HD Cinema", price: 479.90, imgType: "projector" },
+      { id: "88243215", titleSuffix: "Umidificador de Ar Ultrassônico 3 Litros Silencioso Difusor", price: 89.90, imgType: "humidifier" },
+      { id: "88231082", titleSuffix: "Suporte Articulado de Mesa para Monitores 17 a 35 Pistão a Gás", price: 169.90, imgType: "stand" },
+      { id: "88240122", titleSuffix: "Balança Digital de Alta Precisão Cozinha de Vidro Temperado", price: 34.90, imgType: "scale" },
+      { id: "88238845", titleSuffix: "Lâmpada Inteligente RGB Smart Home Wifi Compatível com Alexa", price: 42.90, imgType: "lamp" },
+      { id: "88239990", titleSuffix: "Tripé de Mesa Flexível Articulado para Celulares e Câmeras", price: 28.50, imgType: "tripod" },
+      { id: "88242130", titleSuffix: "Garrafa Térmica Premium de Inox 1 Litro Conserva Gelado 24h", price: 119.90, imgType: "bottle" },
+      { id: "88244450", titleSuffix: "Adaptador Hub Tipo-C Multiportas 5 em 1 HDMI 4K USB 3.0 Card", price: 99.00, imgType: "hub" },
+      { id: "88231055", titleSuffix: "Organizador de Mesa Acrílico Multiuso Divisórias Office", price: 45.90, imgType: "organizer" }
     ];
 
     const imageAssets: Record<string, string> = {
-      headphone: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400",
-      charger: "https://images.unsplash.com/photo-1583863788434-e58a36330cf0?w=400",
-      cable: "https://images.unsplash.com/photo-1546868871-7041f2a55e12?w=400",
-      keyboard: "https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=400",
-      mouse: "https://images.unsplash.com/photo-1615663245857-ac93bb7c39e7?w=400",
-      backpack: "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400",
-      watch: "https://images.unsplash.com/photo-1508685096489-7aacd43bd3b1?w=400",
-      projector: "https://images.unsplash.com/photo-1535016120720-40c646be5580?w=400",
-      humidifier: "https://images.unsplash.com/photo-1602928321679-560bb453f190?w=400",
-      stand: "https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?w=400",
-      scale: "https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=400",
-      lamp: "https://images.unsplash.com/photo-1507473885765-e6ed057f782c?w=400",
-      tripod: "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=400",
-      blender: "https://images.unsplash.com/photo-1578643464710-8a4907325e58?w=400",
-      hub: "https://images.unsplash.com/photo-1468495244123-6c6c332eeece?w=400",
-      organizer: "https://images.unsplash.com/photo-1596040033229-a9821ebd058d?w=400"
+      smartphone: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=400&q=80",
+      powerbank: "https://images.unsplash.com/photo-1609592806453-6a9ed3a5e8b4?auto=format&fit=crop&w=400&q=80",
+      cable: "https://images.unsplash.com/photo-1546868871-7041f2a55e12?auto=format&fit=crop&w=400&q=80",
+      keyboard: "https://images.unsplash.com/photo-1618384887929-16ec33fab9ef?auto=format&fit=crop&w=400&q=80",
+      mouse: "https://images.unsplash.com/photo-1615663245857-ac93bb7c39e7?auto=format&fit=crop&w=400&q=80",
+      backpack: "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=400&q=80",
+      watch: "https://images.unsplash.com/photo-1508685096489-7aacd43bd3b1?auto=format&fit=crop&w=400&q=80",
+      projector: "https://images.unsplash.com/photo-1535016120720-40c646be5580?auto=format&fit=crop&w=400&q=80",
+      humidifier: "https://images.unsplash.com/photo-1602928321679-560bb453f190?auto=format&fit=crop&w=400&q=80",
+      stand: "https://images.unsplash.com/photo-1603481588273-2f908a9a7a1b?auto=format&fit=crop&w=400&q=80",
+      scale: "https://images.unsplash.com/photo-1574269661430-c92c3d575c3a?auto=format&fit=crop&w=400&q=80",
+      lamp: "https://images.unsplash.com/photo-1507473885765-e6ed057f782c?auto=format&fit=crop&w=400&q=80",
+      tripod: "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?auto=format&fit=crop&w=400&q=80",
+      bottle: "https://images.unsplash.com/photo-1602143407151-7111542de6e8?auto=format&fit=crop&w=400&q=80",
+      hub: "https://images.unsplash.com/photo-1468495244123-6c6c332eeece?auto=format&fit=crop&w=400&q=80",
+      organizer: "https://images.unsplash.com/photo-1596040033229-a9821ebd058d?auto=format&fit=crop&w=400&q=80"
     };
 
     const results: any[] = [];
@@ -184,25 +184,27 @@ async function startServer() {
       const titleQuery = queryStr.charAt(0).toUpperCase() + queryStr.slice(1);
 
       let finalTitle = "";
-      if (i % 3 === 0) {
-        finalTitle = `${titleQuery} ${baseItem.titleSuffix}`;
+      if (lowerQuery === "smartphone" || lowerQuery === "celular") {
+        finalTitle = baseItem.titleSuffix;
+      } else if (i % 3 === 0) {
+        finalTitle = `${titleQuery} - ${baseItem.titleSuffix}`;
       } else if (i % 3 === 1) {
         const words = baseItem.titleSuffix.split(" ");
         finalTitle = `${words[0]} ${titleQuery} ${words.slice(1).join(" ")}`;
       } else {
-        finalTitle = `${titleQuery} Inteligente Premium Series ${i + 1}`;
+        finalTitle = `${titleQuery} Inteligente Premium Series ${10 + i}`;
       }
 
       if (finalTitle.length > 80) {
         finalTitle = finalTitle.substring(0, 77) + "...";
       }
 
-      const price = Math.round((baseItem.price * (0.85 + (hash % 40) / 100)) * 10) / 10 || 59.90;
-      const soldQuantity = (hash % 380) + 15;
-      const availableQuantity = (hash % 120) + 2;
-      const condition = hash % 9 === 0 ? "used" : "new";
-      const freeShipping = hash % 2 === 0;
-      const isFulfillment = hash % 3 !== 2;
+      const price = baseItem.price;
+      const soldQuantity = (hash % 1450) + 45;
+      const availableQuantity = (hash % 89) + 4;
+      const condition = "new";
+      const freeShipping = true;
+      const isFulfillment = true;
 
       const imgKey = baseItem.imgType;
       const thumbnail = imageAssets[imgKey] || "https://images.unsplash.com/photo-1531403009284-440f080d1e12?w=400";
@@ -289,16 +291,21 @@ async function startServer() {
   // API Route - Proxy public search endpoint with offline fallback
   app.get("/api/meli/search", async (req, res) => {
     const { siteId, q, limit } = req.query;
-    if (!siteId) {
-      return res.status(400).json({ message: "siteId parameter is required" });
-    }
+    const targetSiteId = String(siteId || "MLB");
     const cleanQuery = String(q || '');
 
     try {
-      const url = `https://api.mercadolibre.com/sites/${siteId}/search?q=${encodeURIComponent(cleanQuery)}&limit=${limit || 24}`;
+      const url = `https://api.mercadolibre.com/sites/${targetSiteId}/search?q=${encodeURIComponent(cleanQuery)}&limit=${limit || 24}`;
       console.log(`[Proxy Search] Fetching from Mercado Livre: ${url}`);
       
-      const response = await fetch(url);
+      const headers: Record<string, string> = {
+        "Accept": "application/json"
+      };
+      if (req.headers.authorization) {
+        headers["Authorization"] = req.headers.authorization as string;
+      }
+      
+      const response = await fetch(url, { headers });
       
       if (!response.ok) {
         console.warn(`[Proxy Search] Mercado Livre API returned NOT-OK status: ${response.status}. Falling back to high-fidelity simulated response...`);
