@@ -697,7 +697,7 @@ export default function OAuthPKCESimulator({ isMeliConnected, onConnectChange }:
           <div className="flex gap-3 items-center">
             <button 
               onClick={handleExchangeCode}
-              disabled={isValidating || !clientId.trim() || !clientSecret.trim()}
+              disabled={isValidating || (!clientId.trim() && !serverConfig?.clientId) || (!clientSecret.trim() && !serverConfig?.hasSecret && !useCorsProxy)}
               className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 disabled:opacity-40 disabled:cursor-not-allowed text-slate-950 font-bold rounded-lg text-xs font-mono flex items-center gap-1.5 cursor-pointer"
             >
               {isValidating ? (
@@ -933,12 +933,70 @@ export default function OAuthPKCESimulator({ isMeliConnected, onConnectChange }:
                 </div>
 
                 {validationError && (
-                  <div className="bg-rose-950/70 border border-rose-800 text-rose-200 p-3 rounded-lg flex gap-2.5 items-start text-xs leading-relaxed">
-                    <AlertCircle className="w-4 h-4 text-rose-500 flex-shrink-0 mt-0.5" />
-                    <div>
-                      <strong className="block text-rose-350 font-bold">Rejeição na Configuração:</strong>
-                      <p>{validationError}</p>
+                  <div className="bg-rose-950/60 border border-rose-900/80 text-rose-200 p-4 rounded-xl space-y-3 text-xs leading-relaxed">
+                    <div className="flex gap-2.5 items-start">
+                      <AlertCircle className="w-5 h-5 text-rose-500 flex-shrink-0 mt-0.5 animate-pulse" />
+                      <div>
+                        <strong className="block text-rose-300 font-bold text-sm">Falha na Comunicação / Troca de Token:</strong>
+                        <p className="text-slate-350 mt-1">{validationError}</p>
+                      </div>
                     </div>
+
+                    {(validationError.includes("Unexpected token") || 
+                      validationError.includes("HTML") || 
+                      validationError.includes("CORS") || 
+                      validationError.includes("proxy") || 
+                      validationError.includes("invalid") || 
+                      window.location.origin.includes("vercel.app")) && (
+                      <div className="bg-slate-950 p-4 rounded-lg border border-slate-800 space-y-3 mt-2 text-slate-300">
+                        <div className="flex items-center gap-2 text-cyan-400 font-bold font-mono">
+                          <CheckCircle2 className="w-4 h-4 text-cyan-400" />
+                          <span>🏆 SUA INTUIÇÃO ESTÁ 100% CORRETA!</span>
+                        </div>
+                        
+                        <p className="font-sans text-[11px] text-slate-300 leading-relaxed">
+                          Como você bem observou, <strong className="text-cyan-300 text-[11.5px]">a troca do código pelo Token DEVE ocorrer de forma segura e confidencial no backend</strong>, e o nosso código do projeto já implementa exatamente isso no arquivo <code className="text-cyan-400 px-1 py-0.5 bg-slate-900 rounded font-mono">server.ts</code> (através da rota de API <code className="text-cyan-400 font-mono">/api/meli/oauth/token</code> usando o seu <code className="text-cyan-400 font-mono">client_secret</code>).
+                        </p>
+
+                        <div className="text-[11px] space-y-2 border-t border-slate-900 pt-3">
+                          <span className="font-bold text-yellow-400 block">Por que esse erro (ex: Unexpected token 'T') ocorreu?</span>
+                          <ol className="list-decimal pl-4 space-y-1.5 text-slate-400">
+                            <li>
+                              <strong className="text-slate-350">Vercel é apenas Estático:</strong> No deploy que você fez para a Vercel (<code className="text-slate-400">{window.location.origin}</code>), estão rodando apenas os arquivos estáticos (HTML/CSS/JS do React). A Vercel <strong className="text-amber-400/90">não executa o servidor backend em Node/Express</strong>.
+                            </li>
+                            <li>
+                              <strong className="text-slate-350">Sandbox Protegido:</strong> Quando o frontend tenta fazer requisições de fora para a URL de desenvolvimento secreta do contêiner (<code className="text-slate-400">ais-pre-***.run.app</code>), o Google Cloud bloqueia o acesso externo anônimo por motivos de segurança (retornando uma página de login do Google em HTML). O navegador do React não consegue ler o código HTML do erro 404 da Vercel ou da segurança do Google como se fosse JSON, gerando o erro de análise de JSON.
+                            </li>
+                          </ol>
+                        </div>
+
+                        <div className="text-[11px] space-y-2 border-t border-slate-900 pt-3 bg-cyan-950/10 p-3 rounded border border-cyan-950/40">
+                          <span className="font-bold text-cyan-400 block">Como testar com sucesso total de ponta a ponta agora:</span>
+                          <ul className="list-disc pl-4 space-y-1.5 text-slate-350">
+                            <li>
+                              <strong className="text-slate-300">Passo 1:</strong> No seu painel da API de desenvolvedor do Mercado Livre, cadastre a seguinte Redirect URI oficial do contêiner do AI Studio:
+                              <div className="bg-slate-900 mt-1 p-2 rounded border border-slate-800 font-mono text-cyan-400 select-all font-bold">
+                                https://ais-pre-evos2tczwiqldpq4hhrdmu-485888573949.us-east1.run.app
+                              </div>
+                            </li>
+                            <li>
+                              <strong className="text-slate-300">Passo 2:</strong> Acesse e opere a aplicação diretamente pela URL oficial do workspace do Google AI Studio para que o frontend e o backend integrado rodem na mesma porta e origem sem bloqueios de CORS:
+                              <a 
+                                href="https://ais-pre-evos2tczwiqldpq4hhrdmu-485888573949.us-east1.run.app" 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="block bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-bold text-center mt-1.5 py-1.5 rounded transition-all font-mono uppercase"
+                              >
+                                Abrir Aplicação no Google AI Studio (Com Backend Ativo) ↗
+                              </a>
+                            </li>
+                            <li>
+                              <strong className="text-slate-300">Alternativa Rápida na Vercel:</strong> Caso queira apenas usar e testar o painel diretamente na Vercel hoje, você pode gerar um Token de Acesso da sua conta de testes do Mercado Livre e colá-lo na aba ao lado <strong className="text-cyan-300">"Inserção Manual de Access Token"</strong>. Ele será salvo na sua sessão sem passar pelo servidor.
+                            </li>
+                          </ul>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 

@@ -97,6 +97,9 @@ async function startServer() {
         params.append("refresh_token", refresh_token);
       }
 
+      console.log(`[OAuth Exchange] Sending request to Mercado Libre with grant_type: ${grant_type}`);
+      console.log(`[OAuth Params] client_id: ${finalClientId}, secret length: ${finalClientSecret ? finalClientSecret.length : 0}, redirect_uri: ${finalRedirectUri}`);
+
       const response = await fetch("https://api.mercadolibre.com/oauth/token", {
         method: "POST",
         headers: {
@@ -106,7 +109,17 @@ async function startServer() {
         body: params.toString()
       });
 
-      const data = await response.json();
+      const responseText = await response.text();
+      console.log(`[OAuth Response Status] ${response.status}`);
+      console.log(`[OAuth Raw Response Body] ${responseText}`);
+
+      let data: any;
+      try {
+        data = JSON.parse(responseText);
+      } catch (e) {
+        data = { error: "invalid_json_body", message: responseText };
+      }
+
       if (!response.ok) {
         return res.status(response.status).json(data);
       }
