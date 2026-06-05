@@ -6,12 +6,18 @@
 export function getApiBaseUrl(): string {
   const saved = localStorage.getItem('meli_backend_url');
   if (saved) {
-    return saved.trim();
+    const trimmed = saved.trim();
+    // Vercel only hosts our static frontend, so it cannot be used as a backend server proxy
+    if (trimmed && !trimmed.includes('vercel.app')) {
+      return trimmed;
+    }
+    // Clean invalid cached vercel backend pointers
+    localStorage.removeItem('meli_backend_url');
   }
 
   const origin = window.location.origin;
   // If running locally or on the official Cloud Run preview container host
-  if (origin.includes('localhost') || origin.includes('run.app')) {
+  if ((origin.includes('localhost') || origin.includes('run.app')) && !origin.includes('vercel.app')) {
     return origin;
   }
 

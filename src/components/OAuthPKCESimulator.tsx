@@ -50,6 +50,16 @@ export default function OAuthPKCESimulator({ isMeliConnected, onConnectChange }:
   const [isValidating, setIsValidating] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
 
+  // Whether to use direct client-side requests with a CORS proxy (useful for Vercel/external hosting)
+  const [useCorsProxy, setUseCorsProxy] = useState<boolean>(() => {
+    const isVercel = window.location.origin.includes('vercel.app');
+    const cached = localStorage.getItem('meli_use_cors_proxy');
+    if (cached !== null) {
+      return cached === 'true';
+    }
+    return isVercel;
+  });
+
   // Connection/Expiration stats
   const [expiresIn, setExpiresIn] = useState<number | null>(() => {
     const expiredAt = localStorage.getItem('meli_expires_at');
@@ -108,11 +118,17 @@ export default function OAuthPKCESimulator({ isMeliConnected, onConnectChange }:
     const configUrl = getApiUrl('/api/meli/config');
     addLog(`📡 Buscando configurações do backend em ${configUrl}...`);
     fetch(configUrl)
-      .then(res => {
+      .then(async res => {
         if (!res.ok) {
           throw new Error(`STATUS ${res.status}`);
         }
-        return res.json();
+        const contentType = res.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+          return res.json();
+        } else {
+          const text = await res.text();
+          throw new Error(`O servidor respondeu com HTML/Texto em vez de JSON válido. Caractere inicial: "${text.substring(0, 15)}..."`);
+        }
       })
       .then(data => {
         setServerConfig(data);
@@ -129,7 +145,7 @@ export default function OAuthPKCESimulator({ isMeliConnected, onConnectChange }:
       })
       .catch(err => {
         console.error("Falha ao carregar as variáveis de ambiente:", err);
-        addLog(`⚠️ Não foi possível carregar as configurações automáticas do backend (${err.message}). Verifique o endereço do servidor backend.`);
+        addLog(`⚠️ Não foi possível carregar as configurações do backend (${err.message}). Por favor verifique de forma atenta se a URL da API Cloud Run está correta ou salve o endereço correto no painel abaixo.`);
       });
   };
 
@@ -261,7 +277,7 @@ export default function OAuthPKCESimulator({ isMeliConnected, onConnectChange }:
     }, 1500);
   };
 
-  // Exchanging auth code for access token via our secure server proxy
+  // Exchanging auth code for access token via our server proxy or direct CORS proxy
   const handleExchangeCode = async () => {
     if (!detectedCode) return;
     
@@ -273,7 +289,7 @@ export default function OAuthPKCESimulator({ isMeliConnected, onConnectChange }:
       return;
     }
 
-    if (!finalClientSecret && !serverConfig?.hasSecret) {
+    if (!finalClientSecret && !serverConfig?.hasSecret && !useCorsProxy) {
       setValidationError("Para realizar a troca do código pelo Token real, o Client Secret é exigido ou deve estar configurado no servidor.");
       return;
     }
@@ -290,32 +306,63 @@ export default function OAuthPKCESimulator({ isMeliConnected, onConnectChange }:
     }
     localStorage.setItem('meli_oauth_country', selectedCountry);
 
-    addLog(`📡 Realizando Code Exchange robusto via POST /api/meli/oauth/token...`);
-
     const redirectUri = serverConfig?.redirectUri || (window.location.origin + window.location.pathname);
 
     try {
-      const response = await fetch(getApiUrl("/api/meli/oauth/token"), {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          grant_type: "authorization_code",
-          client_id: finalClientId,
-          client_secret: finalClientSecret,
-          code: detectedCode,
-          redirect_uri: redirectUri
-        })
-      });
+      let response: Response;
+      
+      if (useCorsProxy) {
+        addLog(`📡 Efetuando Code Exchange DIRETAMENTE pelo navegador via CORS Proxy (allorigins/raw)...`);
+        const params = new URLSearchParams();
+        params.append("grant_type", "authorization_code");
+        params.append("client_id", finalClientId);
+        params.append("client_secret", finalClientSecret);
+        params.append("code", detectedCode);
+        params.append("redirect_uri", redirectUri);
 
-      const data = await response.json();
+        const targetUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent("https://api.mercadolibre.com/oauth/token")}`;
+        
+        response = await fetch(targetUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded"
+          },
+          body: params.toString()
+        });
+      } else {
+        addLog(`📡 Realizando Code Exchange robusto via POST /api/meli/oauth/token no Servidor...`);
+        response = await fetch(getApiUrl("/api/meli/oauth/token"), {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            grant_type: "authorization_code",
+            client_id: finalClientId,
+            client_secret: finalClientSecret,
+            code: detectedCode,
+            redirect_uri: redirectUri
+          })
+        });
+      }
 
-      if (response.ok) {
+      let data: any;
+      const contentType = response.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        data = await response.json();
+      } else {
+        const text = await response.text();
+        try {
+          data = JSON.parse(text);
+        } catch (e) {
+          throw new Error(`Resposta inválida (não-JSON) do endpoint. Conteúdo retornado: "${text.substring(0, 100)}..."`);
+        }
+      }
+
+      if (response.ok && data && !data.error) {
         const at = data.access_token;
         const rt = data.refresh_token;
         const seconds_expires = data.expires_in || 21600;
-        const userId = String(data.user_id || "unknown");
 
         localStorage.setItem('meli_access_token', at);
         if (rt) {
@@ -335,12 +382,12 @@ export default function OAuthPKCESimulator({ isMeliConnected, onConnectChange }:
         window.history.replaceState({}, document.title, window.location.pathname);
         setDetectedCode(null);
       } else {
-        const errDetails = data.message || data.error_description || "Erro na troca (revisar Client Secret / Redirect URI)";
+        const errDetails = data?.message || data?.error_description || data?.error || data?.message || "Erro na troca (revisar Client Secret / Redirect URI)";
         setValidationError(`Falha na troca de código: ${errDetails}`);
         addLog(`❌ Falha na autorização: ${errDetails}`);
       }
     } catch (err: any) {
-      setValidationError(`Falha no terminal de rede backend: ${err?.message || err}`);
+      setValidationError(`Falha no terminal de rede/proxy: ${err?.message || err}`);
       addLog(`❌ Ocorreu um erro físico de transporte de dados.`);
     } finally {
       setIsValidating(false);
@@ -363,7 +410,7 @@ export default function OAuthPKCESimulator({ isMeliConnected, onConnectChange }:
       return;
     }
 
-    if (!finalClientSecret && !serverConfig?.hasSecret) {
+    if (!finalClientSecret && !serverConfig?.hasSecret && !useCorsProxy) {
       setValidationError("O Client Secret é exigido ou deve estar configurado no servidor.");
       return;
     }
@@ -371,25 +418,58 @@ export default function OAuthPKCESimulator({ isMeliConnected, onConnectChange }:
     setIsValidating(true);
     setValidationError(null);
 
-    addLog(`🔄 Disparando renovação assíncrona usando o Refresh Token registrado...`);
+    addLog(`🔄 Disparando renovação usando o Refresh Token registrado...`);
 
     try {
-      const response = await fetch(getApiUrl("/api/meli/oauth/token"), {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          grant_type: "refresh_token",
-          client_id: finalClientId,
-          client_secret: finalClientSecret,
-          refresh_token: rt
-        })
-      });
+      let response: Response;
 
-      const data = await response.json();
+      if (useCorsProxy) {
+        addLog(`📡 Renovando Token de forma DIRETA via CORS Proxy (allorigins/raw)...`);
+        const params = new URLSearchParams();
+        params.append("grant_type", "refresh_token");
+        params.append("client_id", finalClientId);
+        params.append("client_secret", finalClientSecret);
+        params.append("refresh_token", rt);
 
-      if (response.ok) {
+        const targetUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent("https://api.mercadolibre.com/oauth/token")}`;
+
+        response = await fetch(targetUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded"
+          },
+          body: params.toString()
+        });
+      } else {
+        addLog(`📡 Renovando Token no servidor por meio de POST /api/meli/oauth/token...`);
+        response = await fetch(getApiUrl("/api/meli/oauth/token"), {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            grant_type: "refresh_token",
+            client_id: finalClientId,
+            client_secret: finalClientSecret,
+            refresh_token: rt
+          })
+        });
+      }
+
+      let data: any;
+      const contentType = response.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        data = await response.json();
+      } else {
+        const text = await response.text();
+        try {
+          data = JSON.parse(text);
+        } catch (e) {
+          throw new Error(`Resposta de refresh inválida do endpoint. Conteúdo: "${text.substring(0, 100)}..."`);
+        }
+      }
+
+      if (response.ok && data && !data.error) {
         const at = data.access_token;
         const new_rt = data.refresh_token;
         const seconds_expires = data.expires_in || 21600;
@@ -417,7 +497,7 @@ export default function OAuthPKCESimulator({ isMeliConnected, onConnectChange }:
           });
         }
       } else {
-        const errMsg = data.message || data.error_description || "Erro de validação do refresh_token";
+        const errMsg = data?.message || data?.error_description || data?.error || "Erro de validação do refresh_token";
         setValidationError(`Erro de Refresh: ${errMsg}`);
         addLog(`❌ Falha no ciclo de Token Refresh: ${errMsg}`);
       }
@@ -533,6 +613,69 @@ export default function OAuthPKCESimulator({ isMeliConnected, onConnectChange }:
             )}
           </div>
         </div>
+
+        <div className="pt-4 border-t border-slate-800/80 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <span className="text-[10px] text-cyan-400 block font-bold font-mono uppercase">⚙️ Método de Troca de Código (OAuth Exchange Strategy)</span>
+            <p className="text-[11px] text-slate-400">
+              Escolha a estratégia ideal conforme o ambiente de hospedagem que estiver utilizando.
+            </p>
+          </div>
+          <div className="flex bg-slate-950 p-1 rounded-lg border border-slate-800 font-mono self-start sm:self-auto">
+            <button
+              type="button"
+              onClick={() => {
+                setUseCorsProxy(false);
+                localStorage.setItem('meli_use_cors_proxy', 'false');
+                addLog('🔒 Estratégia configurada: Servidor Backend Express (Proxy Seguro). Recomendado para produção real!');
+              }}
+              className={`px-3 py-1.5 rounded text-xs font-bold transition-all cursor-pointer ${
+                !useCorsProxy 
+                  ? 'bg-cyan-600 text-slate-950 shadow' 
+                  : 'text-slate-450 hover:text-slate-200'
+              }`}
+            >
+              🔒 Servidor Backend
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setUseCorsProxy(true);
+                localStorage.setItem('meli_use_cors_proxy', 'true');
+                addLog('⚡ Estratégia configurada: CORS Proxy Direto do Navegador (allorigins). Ideal para testes na Vercel!');
+              }}
+              className={`px-3 py-1.5 rounded text-xs font-bold transition-all cursor-pointer ${
+                useCorsProxy 
+                  ? 'bg-cyan-600 text-slate-950 shadow' 
+                  : 'text-slate-450 hover:text-slate-200'
+              }`}
+            >
+              ⚡ CORS Proxy Direto (Vercel)
+            </button>
+          </div>
+        </div>
+
+        {useCorsProxy ? (
+          <div className="text-amber-300 bg-amber-950/30 border border-amber-900/50 p-4 rounded-xl text-xs space-y-1.5 leading-relaxed">
+            <div className="flex items-center gap-1.5 font-bold text-amber-400">
+              <Sparkles className="w-4 h-4 text-amber-400 animate-pulse" />
+              <span>Modo CORS Proxy Otimizado para Vercel</span>
+            </div>
+            <p className="text-slate-300">
+              Sua aplicação está pré-configurada para efetuar a troca de credenciais diretamente do navegador sem bater na API protegida do Google Cloud Run sandbox (evitando rejeições IAP e erro 403 "Unexpected token T"). O Client ID e o Client Secret informados abaixo serão passados ao Mercado Livre por meio de um proxy CORS autônomo e transparente.
+            </p>
+          </div>
+        ) : (
+          <div className="text-emerald-300 bg-emerald-950/20 border border-emerald-900/40 p-4 rounded-xl text-xs space-y-1leading-relaxed">
+            <div className="flex items-center gap-1.5 font-bold text-emerald-400">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+              <span>Modo Proxy de Backend Seguro do Express</span>
+            </div>
+            <p className="text-slate-305">
+              Esta é a arquitetura ideal e padrão da aplicação. O client_secret do seu Mercado Livre é mantido estritamente seguro no servidor Express e nunca exposto aos navegadores dos clientes finais. Funciona perfeitamente quando você acessa a aplicação por meio do link de desenvolvimento do workspace.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* DETECTED CODE BANNER FROM OAUTH REDIRECT */}
