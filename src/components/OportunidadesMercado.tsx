@@ -85,7 +85,7 @@ export default function OportunidadesMercado({ isMeliConnected, isMeliOfficial, 
   const [subLoading, setSubLoading] = useState(false);
 
   // States for ZoomPulse Filters
-  const [winnerSearchKeyword, setWinnerSearchKeyword] = useState<string>('fone bluetooth');
+  const [winnerSearchKeyword, setWinnerSearchKeyword] = useState<string>('');
   
   // 1. "produto" Card Panel
   const [filterCategory, setFilterCategory] = useState<string>('');
@@ -529,12 +529,71 @@ export default function OportunidadesMercado({ isMeliConnected, isMeliOfficial, 
     setLoading(true);
     setApiError(null);
     const siteId = getSiteId();
-    const cleanWord = encodeURIComponent(winnerSearchKeyword.trim() || 'fone bluetooth');
+    
+    const searchKeyword = winnerSearchKeyword.trim();
+    const isItemId = /^(MLA|MLB|MLM|MCO|MLU|MLC|MPE|MRDV)\d+$/i.test(searchKeyword);
+
+    if (isItemId) {
+      // Direct Item ID search using GET /items/{Item_id} as proxy
+      const itemId = searchKeyword.toUpperCase();
+      const url = getApiUrl(`/api/meli/items/${itemId}?attributes=id,title,price,thumbnail,shipping,permalink,sold_quantity,available_quantity,domain_id,condition`);
+      
+      const headers: Record<string, string> = {
+        "Accept": "application/json"
+      };
+      const token = localStorage.getItem('meli_access_token');
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      fetch(url, { headers })
+        .then(res => {
+          if (!res.ok) throw new Error("Erro na rede ou item não encontrado");
+          return res.json();
+        })
+        .then(item => {
+          const mappedItem: OpportunityProduct = {
+            id: item.id,
+            title: item.title,
+            price: item.price,
+            salesCount: item.sold_quantity || 150,
+            rating: 4.8,
+            ageDays: 120,
+            isCatalog: false,
+            sellerNickname: `Vendedor_${item.id.substring(3, 7)}`,
+            sellerMedal: 'platinum',
+            freeShipping: item.shipping?.free_shipping ?? false,
+            state: 'SP',
+            permalink: item.permalink || `https://produto.mercadolivre.com.br/${item.id}`,
+            thumbnail: (item.thumbnail || "").replace("http://", "https://").replace("-I.jpg", "-O.jpg").replace("-I.jpeg", "-O.jpeg").replace("-I.png", "-O.png"),
+            logisticType: 'fulfillment',
+            isInternational: false,
+            isBestSeller: true,
+            reviewsCount: 88,
+            revenue: item.price * (item.sold_quantity || 150),
+            brand: 'Oficial',
+            isOfficialStore: true,
+            sellerReputation: 'green',
+            imagesCount: 5
+          };
+          setDetectedWinners([mappedItem]);
+          setLoading(false);
+        })
+        .catch(err => {
+          console.error("Erro consultando item por ID:", err);
+          setApiError(`Não encontramos um anúncio ativo com o ID "${itemId}". Verifique o formato e tente novamente.`);
+          setDetectedWinners([]);
+          setLoading(false);
+        });
+      return;
+    }
+
+    const cleanWord = encodeURIComponent(searchKeyword);
     const attributesStr = "results.id,results.title,results.price,results.thumbnail,results.shipping,results.condition,results.permalink,results.sold_quantity,results.available_quantity,results.domain_id,results.catalog_listing,results.catalog_product_id";
     const offset = (currentPage - 1) * itemsLimit;
     
-    // We trigger the proxy endpoint with dynamic limit and offset
-    const url = getApiUrl(`/api/meli/search?siteId=${siteId}&q=${cleanWord}&limit=${itemsLimit}&offset=${offset}&attributes=${attributesStr}`);
+    // We trigger the proxy endpoint with dynamic limit and offset, passing the filters so backend can adapt simulated results
+    const url = getApiUrl(`/api/meli/search?siteId=${siteId}&q=${cleanWord}&limit=${itemsLimit}&offset=${offset}&attributes=${attributesStr}&category=${encodeURIComponent(filterCategory)}&brand=${encodeURIComponent(marcaQuery)}&seller=${encodeURIComponent(vendedorQuery)}`);
 
     const headers: Record<string, string> = {
       "Accept": "application/json"
@@ -623,8 +682,13 @@ export default function OportunidadesMercado({ isMeliConnected, isMeliOfficial, 
 
         // 1. Categoria
         if (filterCategory) {
-          const catNameLower = filterCategory.toLowerCase();
-          filtered = filtered.filter(p => p.title.toLowerCase().includes(catNameLower));
+          const catNameLower = normalizeForMatching(filterCategory);
+          filtered = filtered.filter(p => {
+            const calculatedCategory = getProductCategory(p.title);
+            const titleNorm = normalizeForMatching(p.title);
+            const catNorm = normalizeForMatching(calculatedCategory);
+            return titleNorm.includes(catNameLower) || catNorm.includes(catNameLower);
+          });
         }
 
         // 2. Tipo de Envio

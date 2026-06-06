@@ -134,9 +134,11 @@ async function startServer() {
   });
 
   // Helper for generating incredibly high-fidelity mock search results of real e-commerce products on any network or rate limit failure
-  function generateMockSearchResults(q: string, limit: any): any {
-    const queryStr = String(q || 'smartphone').trim();
-    const lowerQuery = queryStr.toLowerCase();
+  function generateMockSearchResults(q: string, limit: any, category?: any, brand?: any, seller?: any): any {
+    const queryStr = String(q || '').trim();
+    const filterCat = String(category || '').trim();
+    const filterBrand = String(brand || '').trim();
+    const filterSeller = String(seller || '').trim();
     const count = Number(limit || 24);
 
     // List of dynamic products for different niches to preserve 100% sanity
@@ -213,59 +215,86 @@ async function startServer() {
     };
 
     const normQuery = normalizeText(queryStr);
+    const normCategory = normalizeText(filterCat);
+    const normBrand = normalizeText(filterBrand);
+    const normSeller = normalizeText(filterSeller);
+
+    // Pick first non-empty value to determine product target context
+    const activeSearchCriterion = normQuery || normCategory || normBrand || normSeller;
+
     const results: any[] = [];
-    const isBeautyNiche = normQuery.includes("maquiagem") || normQuery.includes("batom") || normQuery.includes("rimel") || normQuery.includes("sombra") || normQuery.includes("base") || normQuery.includes("beleza") || normQuery.includes("cosmet") || normQuery.includes("pincel") || normQuery.includes("makeup") || normQuery.includes("cuidado");
-    const isTechNiche = normQuery.includes("celular") || normQuery.includes("smartphone") || normQuery.includes("iphone") || normQuery.includes("xiaomi") || normQuery.includes("samsung") || normQuery.includes("redmi") || normQuery.includes("motorola");
-    const isAudioNiche = normQuery.includes("fone") || normQuery.includes("headset") || normQuery.includes("audio") || normQuery.includes("som") || normQuery.includes("bluetooth") || normQuery.includes("jbl");
-    const isHardwareNiche = normQuery.includes("dobradica") || normQuery.includes("fechadura") || normQuery.includes("parafuso") || normQuery.includes("prego") || normQuery.includes("ferramenta") || normQuery.includes("furadeira") || normQuery.includes("parafusadeira") || normQuery.includes("corredica") || normQuery.includes("trilho") || normQuery.includes("puxador");
-    const isFurnitureNiche = normQuery.includes("guarda") || normQuery.includes("roupa") || normQuery.includes("armario") || normQuery.includes("sofa") || normQuery.includes("mesa") || normQuery.includes("cadeira") || normQuery.includes("moveis") || normQuery.includes("cama") || normQuery.includes("comoda") || normQuery.includes("colchao");
-    const isFashionNiche = normQuery.includes("camisa") || normQuery.includes("camiseta") || normQuery.includes("calca") || normQuery.includes("vestido") || normQuery.includes("casaco") || normQuery.includes("tenis") || normQuery.includes("sapato") || normQuery.includes("bolsa") || normQuery.includes("mochila") || normQuery.includes("meia");
-    const isAutomotiveNiche = normQuery.includes("pneu") || normQuery.includes("calota") || normQuery.includes("farol") || normQuery.includes("veiculo") || normQuery.includes("carro") || normQuery.includes("moto") || normQuery.includes("capacete");
+    const isBeautyNiche = activeSearchCriterion.includes("maquiagem") || activeSearchCriterion.includes("batom") || activeSearchCriterion.includes("rimel") || activeSearchCriterion.includes("sombra") || activeSearchCriterion.includes("base") || activeSearchCriterion.includes("beleza") || activeSearchCriterion.includes("cosmet") || activeSearchCriterion.includes("pincel") || activeSearchCriterion.includes("makeup") || activeSearchCriterion.includes("cuidado");
+    const isTechNiche = activeSearchCriterion.includes("celular") || activeSearchCriterion.includes("smartphone") || activeSearchCriterion.includes("iphone") || activeSearchCriterion.includes("xiaomi") || activeSearchCriterion.includes("samsung") || activeSearchCriterion.includes("redmi") || activeSearchCriterion.includes("motorola");
+    const isAudioNiche = activeSearchCriterion.includes("fone") || activeSearchCriterion.includes("headset") || activeSearchCriterion.includes("audio") || activeSearchCriterion.includes("som") || activeSearchCriterion.includes("bluetooth") || activeSearchCriterion.includes("jbl");
+    const isHardwareNiche = activeSearchCriterion.includes("dobradica") || activeSearchCriterion.includes("fechadura") || activeSearchCriterion.includes("parafuso") || activeSearchCriterion.includes("prego") || activeSearchCriterion.includes("ferramenta") || activeSearchCriterion.includes("furadeira") || activeSearchCriterion.includes("parafusadeira") || activeSearchCriterion.includes("corredica") || activeSearchCriterion.includes("trilho") || activeSearchCriterion.includes("puxador");
+    const isFurnitureNiche = activeSearchCriterion.includes("guarda") || activeSearchCriterion.includes("roupa") || activeSearchCriterion.includes("armario") || activeSearchCriterion.includes("sofa") || activeSearchCriterion.includes("mesa") || activeSearchCriterion.includes("cadeira") || activeSearchCriterion.includes("moveis") || activeSearchCriterion.includes("cama") || activeSearchCriterion.includes("comoda") || activeSearchCriterion.includes("colchao");
+    const isFashionNiche = activeSearchCriterion.includes("camisa") || activeSearchCriterion.includes("camiseta") || activeSearchCriterion.includes("calca") || activeSearchCriterion.includes("vestido") || activeSearchCriterion.includes("casaco") || activeSearchCriterion.includes("tenis") || activeSearchCriterion.includes("sapato") || activeSearchCriterion.includes("bolsa") || activeSearchCriterion.includes("mochila") || activeSearchCriterion.includes("meia");
+    const isAutomotiveNiche = activeSearchCriterion.includes("pneu") || activeSearchCriterion.includes("calota") || activeSearchCriterion.includes("farol") || activeSearchCriterion.includes("veiculo") || activeSearchCriterion.includes("carro") || activeSearchCriterion.includes("moto") || activeSearchCriterion.includes("capacete");
 
     for (let i = 0; i < count; i++) {
-      const hash = lowerQuery.split('').reduce((acc, char, idx) => acc + char.charCodeAt(0) * (idx + 1), 0) + i + 101;
+      const hash = (activeSearchCriterion || 'produtos').split('').reduce((acc, char, idx) => acc + char.charCodeAt(0) * (idx + 1), 0) + i + 101;
       let finalId = "";
       let finalTitle = "";
       let price = 49.90;
       let thumbnail = "";
 
-      if (isBeautyNiche) {
+      let isBeauty = isBeautyNiche;
+      let isTech = isTechNiche;
+      let isAudio = isAudioNiche;
+      let isHardware = isHardwareNiche;
+      let isFurniture = isFurnitureNiche;
+      let isFashion = isFashionNiche;
+      let isAutomotive = isAutomotiveNiche;
+
+      if (!isBeauty && !isTech && !isAudio && !isHardware && !isFurniture && !isFashion && !isAutomotive) {
+        // Distribute results cleanly across all niches when no matching term was defined
+        const selectionIdx = hash % 7;
+        if (selectionIdx === 0) isBeauty = true;
+        else if (selectionIdx === 1) isTech = true;
+        else if (selectionIdx === 2) isAudio = true;
+        else if (selectionIdx === 3) isHardware = true;
+        else if (selectionIdx === 4) isFurniture = true;
+        else if (selectionIdx === 5) isFashion = true;
+        else if (selectionIdx === 6) isAutomotive = true;
+      }
+
+      if (isBeauty) {
         const item = beautyProducts[hash % beautyProducts.length];
         finalId = `MLB354${item.id}${100 + i}`;
         finalTitle = item.title;
         price = item.price;
         thumbnail = item.img;
-      } else if (isTechNiche) {
+      } else if (isTech) {
         const item = techProducts[hash % techProducts.length];
         finalId = `MLB105${item.id}${100 + i}`;
         finalTitle = item.title;
         price = item.price;
         thumbnail = item.img;
-      } else if (isAudioNiche) {
+      } else if (isAudio) {
         const item = audioProducts[hash % audioProducts.length];
         finalId = `MLB201${item.id}${100 + i}`;
         finalTitle = item.title;
         price = item.price;
         thumbnail = item.img;
-      } else if (isHardwareNiche) {
+      } else if (isHardware) {
         const item = hardwareProducts[hash % hardwareProducts.length];
         finalId = `MLB401${item.id}${100 + i}`;
         finalTitle = item.title;
         price = item.price;
         thumbnail = item.img;
-      } else if (isFurnitureNiche) {
+      } else if (isFurniture) {
         const item = furnitureProducts[hash % furnitureProducts.length];
         finalId = `MLB501${item.id}${100 + i}`;
         finalTitle = item.title;
         price = item.price;
         thumbnail = item.img;
-      } else if (isFashionNiche) {
+      } else if (isFashion) {
         const item = fashionProducts[hash % fashionProducts.length];
         finalId = `MLB601${item.id}${100 + i}`;
         finalTitle = item.title;
         price = item.price;
         thumbnail = item.img;
-      } else if (isAutomotiveNiche) {
+      } else if (isAutomotive) {
         const item = automotiveProducts[hash % automotiveProducts.length];
         finalId = `MLB701${item.id}${100 + i}`;
         finalTitle = item.title;
@@ -302,7 +331,7 @@ async function startServer() {
         },
         sold_quantity: soldQuantity,
         available_quantity: availableQuantity,
-        domain_id: `MLB_${lowerQuery.toUpperCase().replace(/[^A-Z0-9]/g, '_')}`,
+        domain_id: `MLB_${(activeSearchCriterion || 'produtos').toUpperCase().replace(/[^A-Z0-9]/g, '_')}`,
         catalog_listing: hash % 6 === 0,
         catalog_product_id: hash % 6 === 0 ? `MLB_CAT_${hash % 4500}` : null,
         permalink: `https://lista.mercadolivre.com.br/${encodeURIComponent(finalTitle)}`
@@ -371,7 +400,7 @@ async function startServer() {
 
   // API Route - Proxy public search endpoint with offline fallback
   app.get("/api/meli/search", async (req, res) => {
-    const { siteId, q, limit, offset, attributes } = req.query;
+    const { siteId, q, limit, offset, attributes, category, brand, seller } = req.query;
     const targetSiteId = String(siteId || "MLB");
     const cleanQuery = String(q || '');
 
@@ -396,7 +425,7 @@ async function startServer() {
       
       if (!response.ok) {
         console.warn(`[Proxy Search] Mercado Livre API returned NOT-OK status: ${response.status}. Falling back to high-fidelity simulated response...`);
-        const fallbackData = generateMockSearchResults(cleanQuery, limit || 24);
+        const fallbackData = generateMockSearchResults(cleanQuery, limit || 24, category, brand, seller);
         return res.json(fallbackData);
       }
 
@@ -404,7 +433,7 @@ async function startServer() {
       return res.json(data);
     } catch (error: any) {
       console.warn("[Proxy Search] Network/fetching exception from Mercado Libre API. Falling back to high-fidelity simulated response...", error.message || error);
-      const fallbackData = generateMockSearchResults(cleanQuery, limit || 24);
+      const fallbackData = generateMockSearchResults(cleanQuery, limit || 24, category, brand, seller);
       return res.json(fallbackData);
     }
   });
@@ -428,6 +457,87 @@ async function startServer() {
     } catch (error: any) {
       console.warn("[Proxy Categories] Network error fetching categories from real API. Returning beautiful fallback root categories...", error.message || error);
       return res.json(MOCK_ROOT_CATEGORIES);
+    }
+  });
+
+  // API Route - Proxy individual item query endpoint with offline fallback
+  app.get("/api/meli/items/:itemId", async (req, res) => {
+    const { itemId } = req.params;
+    const { attributes } = req.query;
+
+    try {
+      let url = `https://api.mercadolibre.com/items/${itemId}`;
+      if (attributes) {
+        url += `?attributes=${attributes}`;
+      }
+      console.log(`[Proxy Item Detail] Fetching from Mercado Livre: ${url}`);
+      
+      const headers: Record<string, string> = {
+        "Accept": "application/json"
+      };
+      if (req.headers.authorization) {
+        headers["Authorization"] = req.headers.authorization as string;
+      }
+      
+      const response = await fetch(url, { headers });
+      if (!response.ok) {
+        throw new Error(`Status ${response.status}`);
+      }
+      const data = await response.json();
+      return res.json(data);
+    } catch (error: any) {
+      console.warn(`[Proxy Item Detail] Falling back to simulating item detail for ${itemId}`);
+      // Generate highly realistic mock response for any custom Item ID
+      const cleanedId = String(itemId).toUpperCase();
+      const hash = cleanedId.split('').reduce((acc, char, idx) => acc + char.charCodeAt(0) * (idx + 1), 0);
+      
+      const mockTitles = [
+        "Fone de Ouvido Bluetooth Sem Fio Premium Pro com Cancelamento de Ruído",
+        "Suporte Articulado de Mesa Universal para Dois Monitores LED/OLED",
+        "Mini Umidificador de Ar Ultrassônico USB com Iluminação LED Rainbow",
+        "Organizador de Mesa Acrílico Transparante Multiuso com Gavetas",
+        "Carregador Rápido Turbo Dual Port USB-C 35W Compatível com iOS e Android"
+      ];
+      const selectedTitle = mockTitles[hash % mockTitles.length];
+      const price = 49.90 + (hash % 450);
+      
+      return res.json({
+        id: cleanedId,
+        title: selectedTitle,
+        price: price,
+        status: "active",
+        thumbnail: "https://http2.mlstatic.com/D_NQ_NP_830605-MLA46399086638_062021-O.webp",
+        category_id: "MLB1008",
+        permalink: `https://produto.mercadolivre.com.br/${cleanedId}`,
+        sold_quantity: (hash % 1200) + 5,
+        available_quantity: (hash % 85) + 3,
+        condition: "new",
+        shipping: {
+          free_shipping: price >= 79,
+          logistic_type: hash % 2 === 0 ? "fulfillment" : "cross_docking"
+        },
+        domain_id: "MLB_TECH_PRODUCTS"
+      });
+    }
+  });
+
+  // API Route - Proxy individual item description
+  app.get("/api/meli/items/:itemId/description", async (req, res) => {
+    const { itemId } = req.params;
+
+    try {
+      const url = `https://api.mercadolibre.com/items/${itemId}/description`;
+      console.log(`[Proxy Item Description] Fetching description for ${itemId}`);
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`Status ${response.status}`);
+      }
+      const data = await response.json();
+      return res.json(data);
+    } catch (error: any) {
+      return res.json({
+        plain_text: `Descrição completa do produto ${itemId}.\n\nEste produto premium foi submetido a severos testes de qualidade para garantir a melhor performance e longevidade do mercado nacional.\n\nBenefícios:\n- Alta durabilidade\n- Atendimento especializado\n- Envio imediato em menos de 24 horas\n\nGarantia de 90 dias diretamente com o fabricante!`
+      });
     }
   });
 
