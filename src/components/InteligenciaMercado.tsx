@@ -503,6 +503,14 @@ export default function InteligenciaMercado({ isMeliConnected, isMeliOfficial, s
                 </span>
               </div>
 
+              {/* Informação sobre os itens */}
+              <div className="bg-amber-50/65 border border-amber-200/80 rounded-xl p-3 px-4 text-xs text-amber-900 font-medium flex gap-2 items-center shadow-3xs">
+                <Info className="w-4 h-4 text-amber-600 flex-shrink-0" />
+                <span>
+                  <strong>📌 Anúncios Individuais Ativos:</strong> Cada card abaixo representa um único anúncio ativo real cadastrado no Mercado Livre Brasil. <span className="font-bold">Não</span> representam termos ou páginas de pesquisa! Você pode ir direto à página da oferta viva tocando no botão ou analisá-la no simulador.
+                </span>
+              </div>
+
               {/* Lista Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {results.map((item) => (
@@ -590,12 +598,22 @@ export default function InteligenciaMercado({ isMeliConnected, isMeliOfficial, s
 
                     </div>
 
-                    {/* Botão de Ação de Análise */}
-                    <div className="pt-1 border-t border-dashed border-slate-100">
-                      <button 
-                        className="w-full bg-indigo-50 group-hover:bg-indigo-600 text-indigo-700 group-hover:text-white font-bold text-[11px] py-1.5 px-3 rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                    {/* Botões integrados de ação */}
+                    <div className="pt-3 border-t border-dashed border-slate-100 mt-3 flex flex-wrap gap-2 items-center justify-between font-sans">
+                      <a 
+                        href={item.permalink && item.permalink !== "https://www.mercadolivre.com.br" ? item.permalink : `https://produto.mercadolivre.com.br/MLB-${item.id.replace(/[^\d]/g, '')}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 font-bold text-[11px] py-1.5 px-3 rounded-lg flex items-center gap-1 transition-all cursor-pointer select-none"
                       >
-                        <BarChart3 className="w-3.5 h-3.5" /> Analisar Margem e Concorrência deste Anúncio 📊
+                        Ver no Mercado Livre 🚀 <ExternalLink className="w-3.5 h-3.5 text-slate-500" />
+                      </a>
+                      
+                      <button 
+                        className="bg-indigo-50 group-hover:bg-indigo-600 text-indigo-700 group-hover:text-white font-bold text-[11px] py-1.5 px-3 rounded-lg flex items-center gap-1.5 transition-all cursor-pointer"
+                      >
+                        <BarChart3 className="w-3.5 h-3.5" /> Analisar Margem & Concorrência 📊
                       </button>
                     </div>
 

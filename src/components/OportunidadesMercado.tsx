@@ -2003,6 +2003,14 @@ export default function OportunidadesMercado({ isMeliConnected, isMeliOfficial, 
                     Otimizado via API &bull; {itemsLimit} itens &bull; Página {currentPage}
                   </span>
                 </div>
+
+                {/* Informação sobre os itens */}
+                <div className="bg-amber-50/65 border border-amber-200/80 rounded-xl p-3 px-4 text-xs text-amber-900 font-medium flex gap-2 items-center shadow-3xs">
+                  <Info className="w-4 h-4 text-amber-600 flex-shrink-0" />
+                  <span>
+                    <strong>📌 Anúncios Individuais Ativos:</strong> Cada card abaixo representa um único anúncio ativo real cadastrado no Mercado Livre Brasil. <span className="font-bold">Não</span> representam termos ou páginas de pesquisa! Você pode ir direto à página da oferta viva tocando no botão ou analisá-la no simulador.
+                  </span>
+                </div>
                 
                 {detectedWinners.length === 0 ? (
                   <div className="bg-slate-50 text-slate-400 border border-slate-200 text-center py-16 rounded-xl font-medium text-xs w-full">
