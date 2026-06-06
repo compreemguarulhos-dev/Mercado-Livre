@@ -319,12 +319,18 @@ async function startServer() {
 
   // API Route - Proxy public search endpoint with offline fallback
   app.get("/api/meli/search", async (req, res) => {
-    const { siteId, q, limit } = req.query;
+    const { siteId, q, limit, offset, attributes } = req.query;
     const targetSiteId = String(siteId || "MLB");
     const cleanQuery = String(q || '');
 
     try {
-      const url = `https://api.mercadolibre.com/sites/${targetSiteId}/search?q=${encodeURIComponent(cleanQuery)}&limit=${limit || 24}`;
+      const searchParams = new URLSearchParams();
+      searchParams.append("q", cleanQuery);
+      if (limit) searchParams.append("limit", String(limit));
+      if (offset) searchParams.append("offset", String(offset));
+      if (attributes) searchParams.append("attributes", String(attributes));
+
+      const url = `https://api.mercadolibre.com/sites/${targetSiteId}/search?${searchParams.toString()}`;
       console.log(`[Proxy Search] Fetching from Mercado Livre: ${url}`);
       
       const headers: Record<string, string> = {
@@ -338,7 +344,7 @@ async function startServer() {
       
       if (!response.ok) {
         console.warn(`[Proxy Search] Mercado Livre API returned NOT-OK status: ${response.status}. Falling back to high-fidelity simulated response...`);
-        const fallbackData = generateMockSearchResults(cleanQuery, limit);
+        const fallbackData = generateMockSearchResults(cleanQuery, limit || 24);
         return res.json(fallbackData);
       }
 
@@ -346,7 +352,7 @@ async function startServer() {
       return res.json(data);
     } catch (error: any) {
       console.warn("[Proxy Search] Network/fetching exception from Mercado Libre API. Falling back to high-fidelity simulated response...", error.message || error);
-      const fallbackData = generateMockSearchResults(cleanQuery, limit);
+      const fallbackData = generateMockSearchResults(cleanQuery, limit || 24);
       return res.json(fallbackData);
     }
   });

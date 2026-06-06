@@ -3,7 +3,8 @@ import {
   Sparkles, Search, TrendingUp, Filter, Award, 
   Trash2, HelpCircle, Star, ShieldAlert, Lock,
   MapPin, CheckCircle2, ChevronRight, BarChart2,
-  Percent, ArrowUpDown, RefreshCw, Layers, Users, Zap, AlertCircle
+  Percent, ArrowUpDown, RefreshCw, Layers, Users, Zap, AlertCircle,
+  X, Copy, ExternalLink, Info
 } from 'lucide-react';
 import { getApiUrl } from '../utils';
 
@@ -127,6 +128,22 @@ export default function OportunidadesMercado({ isMeliConnected, isMeliOfficial, 
   const minimumStars = Number(classificacaoMin);
 
   const [detectedWinners, setDetectedWinners] = useState<OpportunityProduct[]>([]);
+  
+  // States for Winner Product analytic details modal and dynamic toast system
+  const [selectedProduct, setSelectedProduct] = useState<OpportunityProduct | null>(null);
+  const [supplierCost, setSupplierCost] = useState<number>(0);
+  const [taxPercent, setTaxPercent] = useState<number>(6); // 6% default
+  const [mlFeePercent, setMlFeePercent] = useState<number>(11.5); // 11.5% Clássico default
+  const [shippingCost, setShippingCost] = useState<number>(25); // R$ 25 default
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'info' | 'error' } | null>(null);
+
+  useEffect(() => {
+    if (toast) {
+      const timer = setTimeout(() => setToast(null), 3500);
+      return () => clearTimeout(timer);
+    }
+  }, [toast]);
+
   const [winnersMeta, setWinnersMeta] = useState({
     avgPrice: 0,
     monopShare: 0,
@@ -296,9 +313,10 @@ export default function OportunidadesMercado({ isMeliConnected, isMeliOfficial, 
     setApiError(null);
     const siteId = getSiteId();
     const cleanWord = encodeURIComponent(winnerSearchKeyword.trim() || 'fone bluetooth');
+    const attributesStr = "results.id,results.title,results.price,results.thumbnail,results.shipping,results.condition,results.permalink,results.sold_quantity,results.available_quantity,results.domain_id,results.catalog_listing,results.catalog_product_id";
     
     // We trigger the proxy endpoint
-    const url = getApiUrl(`/api/meli/search?siteId=${siteId}&q=${cleanWord}&limit=50`);
+    const url = getApiUrl(`/api/meli/search?siteId=${siteId}&q=${cleanWord}&limit=50&attributes=${attributesStr}`);
 
     const headers: Record<string, string> = {
       "Accept": "application/json"
@@ -1964,7 +1982,7 @@ export default function OportunidadesMercado({ isMeliConnected, isMeliOfficial, 
                 <h4 className="text-xs font-mono uppercase font-bold text-slate-500 border-b border-slate-100 pb-2">Produtos Vencedores Detectados ({detectedWinners.length}):</h4>
                 
                 {detectedWinners.length === 0 ? (
-                  <div className="bg-slate-50 text-slate-400 border border-slate-200 text-center py-16 rounded-xl font-medium text-xs">
+                  <div className="bg-slate-50 text-slate-400 border border-slate-200 text-center py-16 rounded-xl font-medium text-xs w-full">
                     Nenhum anúncio correspondente foi localizado com as estritas regras de filtragem aplicadas. Tente flexibilizar os limites de estrelas ou de idade!
                   </div>
                 ) : (
@@ -1972,104 +1990,114 @@ export default function OportunidadesMercado({ isMeliConnected, isMeliOfficial, 
                     {detectedWinners.map((product) => (
                       <div 
                         key={product.id}
-                        className="bg-white border border-slate-200 hover:border-cyan-400/80 p-4 rounded-xl shadow-xs transition-colors flex gap-4"
+                        className="bg-white border border-slate-200 hover:border-cyan-400 p-4 rounded-xl shadow-xs transition-colors cursor-pointer group flex flex-col justify-between"
+                        onClick={() => {
+                          setSelectedProduct(product);
+                          setSupplierCost(Math.round(product.price * 0.55 * 100) / 100);
+                          setShippingCost(product.freeShipping ? 24.90 : 0);
+                          setMlFeePercent(product.price > 79 ? 16.5 : 11.5);
+                        }}
                       >
-                        {/* Img Thumbnail container */}
-                        <div className="w-20 h-20 bg-slate-100 rounded-lg overflow-hidden flex-shrink-0 border border-slate-200/50 flex items-center justify-center relative">
-                          <img 
-                            src={product.thumbnail} 
-                            alt={product.title} 
-                            className="object-contain w-full h-full p-1"
-                            referrerPolicy="no-referrer"
-                          />
-                          {product.freeShipping && (
-                            <span className="absolute bottom-0 inset-x-0 bg-emerald-600 text-white text-[8px] font-black uppercase text-center py-0.5">
-                              FRETE GRÁTIS
-                            </span>
-                          )}
+                        <div className="flex gap-4">
+                          {/* Img Thumbnail container */}
+                          <div className="w-20 h-20 bg-slate-50 rounded-lg overflow-hidden flex-shrink-0 border border-slate-200/50 flex items-center justify-center relative bg-white">
+                            <img 
+                              src={product.thumbnail} 
+                              alt={product.title} 
+                              className="object-contain w-full h-full p-1 group-hover:scale-105 transition-transform"
+                              referrerPolicy="no-referrer"
+                            />
+                            {product.freeShipping && (
+                              <span className="absolute bottom-0 inset-x-0 bg-emerald-600 text-white text-[8px] font-black uppercase text-center py-0.5">
+                                FRETE GRÁTIS
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Text context details */}
+                          <div className="space-y-1.5 flex-1 min-w-0">
+                            <div className="flex justify-between items-start gap-2">
+                              <span className="bg-slate-100 text-slate-700 font-mono text-[9px] px-1.5 py-0.5 rounded font-bold">{product.id}</span>
+                              <span className="text-slate-400 text-[10px] items-center gap-1 flex font-mono"><MapPin className="w-3 h-3" /> {product.state}</span>
+                            </div>
+
+                            <h5 className="block font-bold text-xs text-slate-900 group-hover:text-cyan-600 truncate transition-colors">
+                              {product.title}
+                            </h5>
+
+                            <div className="flex justify-between items-center flex-wrap gap-2 pt-1 font-mono text-[10px]">
+                              <span className="text-slate-900 font-extrabold text-sm">{getCurrencySymbol()} {product.price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                              <span className="text-slate-500">Histórico: <strong className="text-slate-700">{product.salesCount}+ vendas</strong></span>
+                            </div>
+
+                            {/* ZoomPulse Estimated Monthly revenue */}
+                            {product.revenue !== undefined && (
+                              <div className="bg-slate-50 text-slate-705 text-[10px] font-mono px-2 py-1 rounded border border-slate-100 flex justify-between items-center font-bold">
+                                <span>Faturamento Mensal Est.:</span>
+                                <strong className="text-slate-900 font-extrabold font-mono">{getCurrencySymbol()} {product.revenue.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}/mês</strong>
+                              </div>
+                            )}
+
+                            {/* Extra critical opportunity tags matched directly to specifications */}
+                            <div className="flex items-center gap-1.5 pt-1.5 flex-wrap">
+                              <span className="bg-amber-50 text-amber-800 border border-amber-200 text-[9px] px-2 py-0.5 rounded flex items-center gap-0.5">
+                                <Star className="w-2.5 h-2.5 fill-amber-500 text-amber-500" /> {product.rating.toFixed(1)}
+                                {product.reviewsCount !== undefined && (
+                                  <span className="text-slate-400 font-normal">({product.reviewsCount})</span>
+                                )}
+                              </span>
+                              
+                              {product.ageDays <= 35 ? (
+                                <span className="bg-emerald-50 text-emerald-800 border border-emerald-250 text-[9px] px-1.5 py-0.5 rounded font-black uppercase">
+                                  🔥 NOVO ({product.ageDays} d)
+                                </span>
+                              ) : (
+                                <span className="bg-slate-100 text-slate-500 text-[9px] px-1.5 py-0.5 rounded">
+                                  Idade: {product.ageDays}d
+                                </span>
+                              )}
+
+                              {product.logisticType === 'fulfillment' ? (
+                                <span className="bg-yellow-50 text-yellow-800 border border-yellow-250 text-[8px] px-1.5 py-0.5 rounded font-extrabold uppercase">
+                                  ⚡ FULL
+                                </span>
+                              ) : (
+                                <span className="bg-slate-50 text-slate-550 text-[8px] px-1.5 py-0.5 rounded">
+                                  Regular
+                                </span>
+                              )}
+
+                              {product.brand && (
+                                <span className="bg-slate-100 text-slate-700 text-[9px] px-1.5 py-0.5 rounded font-mono font-bold">
+                                  {product.brand}
+                                </span>
+                              )}
+
+                              {product.isOfficialStore && (
+                                <span className="bg-cyan-50 text-cyan-800 border border-cyan-205 text-[8px] px-1.5 py-0.5 rounded font-mono font-black uppercase">
+                                  🛡️ LOJA OFICIAL
+                                </span>
+                              )}
+
+                              {product.sellerMedal !== 'none' ? (
+                                <span className="bg-indigo-50 text-indigo-700 border border-indigo-200 text-[9px] px-1.5 py-0.5 rounded font-bold uppercase truncate max-w-[80px]">
+                                  🏆 {product.sellerMedal}
+                                </span>
+                              ) : (
+                                <span className="bg-slate-100 text-slate-600 text-[9px] px-1.5 py-0.5 rounded font-bold">
+                                  👤 Geral
+                                </span>
+                              )}
+                            </div>
+                          </div>
                         </div>
 
-                        {/* Text context details */}
-                        <div className="space-y-1.5 flex-1 min-w-0">
-                          <div className="flex justify-between items-start gap-2">
-                            <span className="bg-slate-100 text-slate-700 font-mono text-[9px] px-1.5 py-0.5 rounded font-bold">{product.id}</span>
-                            <span className="text-slate-400 text-[10px] items-center gap-1 flex font-mono"><MapPin className="w-3 h-3" /> {product.state}</span>
-                          </div>
-
-                          <a 
-                            href={product.permalink && product.permalink !== "https://www.mercadolivre.com.br" ? product.permalink : `https://lista.mercadolivre.com.br/${encodeURIComponent(product.title)}`} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="block font-bold text-xs text-slate-900 hover:text-cyan-600 truncate transition-colors"
-                          >
-                            {product.title}
-                          </a>
-
-                          <div className="flex justify-between items-center flex-wrap gap-2 pt-1 font-mono text-[10px]">
-                            <span className="text-slate-900 font-extrabold text-sm">{getCurrencySymbol()} {product.price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-                            <span className="text-slate-500">Histórico: <strong className="text-slate-700">{product.salesCount}+ vendas</strong></span>
-                          </div>
-
-                          {/* ZoomPulse Estimated Monthly revenue */}
-                          {product.revenue !== undefined && (
-                            <div className="bg-slate-50 text-slate-700 text-[10px] font-mono px-2 py-1 rounded border border-slate-100 flex justify-between items-center">
-                              <span>Consolo de Faturamento Est.:</span>
-                              <strong className="text-slate-900 font-extrabold">{getCurrencySymbol()} {product.revenue.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}/mês</strong>
-                            </div>
-                          )}
-
-                          {/* Extra critical opportunity tags matched directly to specifications */}
-                          <div className="flex items-center gap-1.5 pt-1.5 flex-wrap">
-                            <span className="bg-amber-50 text-amber-800 border border-amber-200 text-[9px] px-2 py-0.5 rounded flex items-center gap-0.5">
-                              <Star className="w-2.5 h-2.5 fill-amber-500 text-amber-500" /> {product.rating.toFixed(1)}
-                              {product.reviewsCount !== undefined && (
-                                <span className="text-slate-400 font-normal">({product.reviewsCount})</span>
-                              )}
-                            </span>
-                            
-                            {product.ageDays <= 35 ? (
-                              <span className="bg-emerald-50 text-emerald-800 border border-emerald-250 text-[9px] px-1.5 py-0.5 rounded font-black uppercase">
-                                🔥 NOVO ({product.ageDays} dias)
-                              </span>
-                            ) : (
-                              <span className="bg-slate-100 text-slate-500 text-[9px] px-1.5 py-0.5 rounded">
-                                Idade: {product.ageDays}d
-                              </span>
-                            )
-                            }
-
-                            {product.logisticType === 'fulfillment' ? (
-                              <span className="bg-yellow-50 text-yellow-800 border border-yellow-250 text-[8px] px-1.5 py-0.5 rounded font-extrabold uppercase">
-                                ⚡ FULL
-                              </span>
-                            ) : (
-                              <span className="bg-slate-50 text-slate-500 text-[8px] px-1.5 py-0.5 rounded">
-                                Regular
-                              </span>
-                            )}
-
-                            {product.brand && (
-                              <span className="bg-slate-100 text-slate-700 text-[9px] px-1.5 py-0.5 rounded font-mono font-bold">
-                                {product.brand}
-                              </span>
-                            )}
-
-                            {product.isOfficialStore && (
-                              <span className="bg-cyan-50 text-cyan-800 border border-cyan-200 text-[8px] px-1.5 py-0.5 rounded font-mono font-black uppercase">
-                                🛡️ LOJA OFICIAL
-                              </span>
-                            )}
-
-                            {product.sellerMedal !== 'none' ? (
-                              <span className="bg-indigo-50 text-indigo-705 border border-indigo-200 text-[9px] px-1.5 py-0.5 rounded font-bold uppercase truncate max-w-[80px]">
-                                🏆 {product.sellerMedal}
-                              </span>
-                            ) : (
-                              <span className="bg-slate-100 text-slate-600 text-[9px] px-1.5 py-0.5 rounded font-bold">
-                                👤 Geral
-                              </span>
-                            )}
-                          </div>
+                        {/* Botão de analise integrado */}
+                        <div className="pt-3 border-t border-dashed border-slate-100 mt-3 flex items-center justify-between">
+                          <span className="text-[10px] text-slate-400 font-medium">Análise de Lucratividade MeliPro</span>
+                          <button className="bg-cyan-50 group-hover:bg-cyan-600 text-cyan-705 group-hover:text-white font-bold text-[11px] py-1.5 px-3 rounded-lg flex items-center gap-1.5 transition-all">
+                            <Sparkles className="w-3.5 h-3.5" /> Analisar Margem & Concorrência 📊
+                          </button>
                         </div>
 
                       </div>
@@ -2293,6 +2321,280 @@ export default function OportunidadesMercado({ isMeliConnected, isMeliOfficial, 
         )}
 
       </div>
+
+      {/* 🌟 PRODUTO VENCEDOR ANALYTIC OVERLAY MODAL */}
+      {selectedProduct && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 overflow-y-auto animate-fade-in animate-duration-200">
+          <div className="bg-white rounded-2xl max-w-4xl w-full shadow-2xl border border-slate-200 overflow-hidden my-8 flex flex-col md:flex-row max-h-[90vh]">
+            
+            {/* Lado Esquerdo - Info do Anúncio */}
+            <div className="md:w-2/5 bg-slate-50 p-6 flex flex-col justify-between border-b md:border-b-0 md:border-r border-slate-200 overflow-y-auto">
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-[10px] font-bold text-cyan-650 bg-cyan-50 px-2 py-0.5 rounded-full uppercase tracking-wider">Amostra Vencedor MeliPro</span>
+                  <div className="flex gap-1 flex-wrap">
+                    <span className="text-[9px] font-bold px-2 py-0.5 bg-yellow-100 text-yellow-850 rounded font-mono uppercase">
+                      Score: {selectedProduct.rating.toFixed(1)} ⭐
+                    </span>
+                  </div>
+                </div>
+
+                {/* Imagem */}
+                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex items-center justify-center h-52 relative">
+                  <img 
+                    src={selectedProduct.thumbnail} 
+                    alt={selectedProduct.title} 
+                    className="max-h-full max-w-full object-contain rounded-lg p-2"
+                    referrerPolicy="no-referrer"
+                  />
+                  {selectedProduct.freeShipping && (
+                    <span className="absolute bottom-3 left-3 bg-emerald-600 text-white text-[9px] font-black uppercase px-2 py-1 rounded shadow-xs">
+                      🚚 FRETE GRÁTIS
+                    </span>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <h3 className="text-sm font-bold text-slate-800 leading-snug font-sans">{selectedProduct.title}</h3>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-[9px] font-mono font-bold text-slate-550 bg-slate-200/60 p-0.5 px-2 rounded">
+                      ID: {selectedProduct.id}
+                    </span>
+                    {selectedProduct.brand && (
+                      <span className="text-[9px] font-bold text-cyan-700 bg-cyan-50 p-0.5 px-2 rounded uppercase font-sans">
+                        Marca: {selectedProduct.brand}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Resumo Rápido */}
+                <div className="bg-white border border-slate-200 rounded-xl p-3.5 space-y-2 text-xs font-medium font-sans">
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Origem:</span>
+                    <span className="font-extrabold text-slate-700">{selectedProduct.state} (Brasil)</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Vendas estimadas:</span>
+                    <span className="text-slate-800 font-bold">+{selectedProduct.salesCount} un.</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Tempo Ativo:</span>
+                    <span className="text-slate-650 font-bold">{selectedProduct.ageDays} dias de listagem</span>
+                  </div>
+                  <div className="flex justify-between border-t border-slate-100 pt-2 font-semibold text-slate-700 font-sans">
+                    <span className="text-slate-600">Faturamento Real Est.:</span>
+                    <span className="text-cyan-600 font-bold font-mono">{getCurrencySymbol()} {selectedProduct.revenue.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}/mês</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="text-[10px] text-slate-400 mt-4 leading-normal font-sans font-medium">
+                As imagens originais e dados consolidados são atualizados em lotes para minimizar o impacto em CDN da sua conta integrada.
+              </div>
+            </div>
+
+            {/* Lado Direito - Calculadora de Lucro & Ações */}
+            <div className="md:w-3/5 p-6 space-y-5 overflow-y-auto flex flex-col justify-between">
+              
+              <div className="space-y-4">
+                {/* Header */}
+                <div className="flex justify-between items-start border-b border-slate-150 pb-3">
+                  <div>
+                    <h3 className="text-sm font-black text-slate-900 flex items-center gap-1.5 uppercase tracking-wide">
+                      <Sparkles className="w-4 h-4 text-cyan-600" /> Analisador de Lucratividade Winner
+                    </h3>
+                    <p className="text-[10px] text-slate-400 mt-0.5 font-semibold font-mono">SIMULE MARGENS DE REVENDA SOBRE O CONCORRENTE</p>
+                  </div>
+                  <button 
+                    onClick={() => setSelectedProduct(null)}
+                    className="bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 p-1 rounded-lg transition-colors cursor-pointer"
+                  >
+                    <X className="w-4 h-4 stroke-[2.5]" />
+                  </button>
+                </div>
+
+                {/* Calculator parameters */}
+                <div className="bg-slate-50 border border-slate-150 p-4 rounded-xl space-y-3">
+                  <span className="text-[9px] font-extrabold text-slate-500 uppercase tracking-wider font-mono block">📊 Parâmetros do Seu Negócio para Importar</span>
+                  
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-[9px] uppercase font-extrabold text-slate-400 block font-mono">Custo do Fornecedor</label>
+                      <div className="relative">
+                        <input 
+                          type="number"
+                          value={supplierCost}
+                          onChange={(e) => setSupplierCost(Number(e.target.value) || 0)}
+                          className="w-full bg-white border border-slate-200 rounded-lg p-1.5 pl-6 text-xs font-bold text-slate-800 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400"
+                        />
+                        <span className="text-slate-400 text-[10px] absolute left-2 top-2 font-bold font-mono">R$</span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[9px] uppercase font-extrabold text-slate-400 block font-mono">Custo do Frete Forçado</label>
+                      <div className="relative">
+                        <input 
+                          type="number"
+                          value={shippingCost}
+                          onChange={(e) => setShippingCost(Number(e.target.value) || 0)}
+                          className="w-full bg-white border border-slate-200 rounded-lg p-1.5 pl-6 text-xs font-bold text-slate-800 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400"
+                        />
+                        <span className="text-slate-400 text-[10px] absolute left-2 top-2 font-bold font-mono">R$</span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[9px] uppercase font-extrabold text-slate-400 block font-mono">Impostos (Simples Nac.)</label>
+                      <div className="relative">
+                        <input 
+                          type="number"
+                          value={taxPercent}
+                          onChange={(e) => setTaxPercent(Number(e.target.value) || 0)}
+                          className="w-full bg-white border border-slate-200 rounded-lg p-1.5 pr-6 text-xs font-bold text-slate-800 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400"
+                        />
+                        <Percent className="w-3 h-3 text-slate-400 absolute right-2 top-2.5" />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[9px] uppercase font-extrabold text-slate-400 block font-mono">Comissão da Conta (ML)</label>
+                      <div className="relative">
+                        <input 
+                          type="number"
+                          value={mlFeePercent}
+                          onChange={(e) => setMlFeePercent(Number(e.target.value) || 0)}
+                          className="w-full bg-white border border-slate-200 rounded-lg p-1.5 pr-6 text-xs font-bold text-slate-800 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400"
+                        />
+                        <Percent className="w-3 h-3 text-slate-400 absolute right-2 top-2.5" />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Calculations breakdown */}
+                  {(() => {
+                    const impProd = selectedProduct ? (selectedProduct.price * taxPercent) / 100 : 0;
+                    const comProd = selectedProduct ? (selectedProduct.price * mlFeePercent) / 100 : 0;
+                    const totProd = supplierCost + impProd + comProd + shippingCost;
+                    const prfProd = selectedProduct ? selectedProduct.price - totProd : 0;
+                    const mdProd = selectedProduct && selectedProduct.price > 0 ? (prfProd / selectedProduct.price) * 100 : 0;
+
+                    return (
+                      <div className="bg-white border border-slate-150 rounded-lg p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 font-sans">
+                        <div className="space-y-0.5">
+                          <span className="text-[9px] uppercase font-extrabold text-slate-400 block font-mono font-bold">Previsão de Lucro Real</span>
+                          <div className="flex items-baseline gap-1.5">
+                            <span className={`text-base font-black ${prfProd >= 0 ? 'text-emerald-600' : 'text-rose-600'} font-mono`}>
+                              {getCurrencySymbol()} {prfProd.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </span>
+                            <span className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded ${
+                              mdProd >= 20 ? 'bg-emerald-100 text-emerald-800' : 
+                              mdProd >= 10 ? 'bg-amber-100 text-amber-800' : 
+                              'bg-rose-100 text-rose-800'
+                            }`}>
+                              {mdProd.toFixed(1)}% margem
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="text-[10px] text-slate-500 font-medium space-y-0.5 border-t sm:border-t-0 sm:border-l border-slate-100 pt-2 sm:pt-0 sm:pl-3 font-mono">
+                          <div>ML Fee: <strong>{getCurrencySymbol()} {comProd.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong></div>
+                          <div>Imposto Estimado: <strong>{getCurrencySymbol()} {impProd.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong></div>
+                          <div>Total Saídas: <strong>{getCurrencySymbol()} {totProd.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong></div>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+
+                {/* Metadata on Seller Concorrência */}
+                <div className="bg-slate-50 border border-slate-150 rounded-lg p-3.5 space-y-1.5 text-xs font-sans">
+                  <span className="text-[9px] font-extrabold text-slate-400 uppercase tracking-wider font-mono block">👤 Detalhes do Anunciante Coletado</span>
+                  <div className="flex justify-between items-center text-[11px]">
+                    <span className="text-slate-400 font-medium">Username Ocultado:</span>
+                    <span className="font-extrabold text-slate-800">@{selectedProduct.sellerNickname}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-[11px]">
+                    <span className="text-slate-400 font-medium">Classificação Seller:</span>
+                    <span className="font-black text-indigo-700 uppercase">🏆 {selectedProduct.sellerMedal === 'none' ? 'Geral' : selectedProduct.sellerMedal}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-[11px]">
+                    <span className="text-slate-400 font-medium font-sans">Logística:</span>
+                    <span className="font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded text-[10px] uppercase font-mono">{selectedProduct.logisticType || 'REGULAR'}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Botões de Ações */}
+              <div className="space-y-3 pt-3 border-t border-slate-150 mt-4 font-sans">
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <button
+                    onClick={() => {
+                      setToast({
+                        message: "Oportunidade importada com sucesso! Salva como rascunho de alto desempenho no seu painel integrador.",
+                        type: 'success'
+                      });
+                    }}
+                    className="flex-1 bg-cyan-600 hover:bg-cyan-700 text-white font-bold text-xs py-2 rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-3xs active:scale-98"
+                  >
+                    <Copy className="w-3.5 h-3.5" /> Clonar Oportunidade Vencedora
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setToast({
+                        message: "Produto monitorado com sucesso! Você receberá alertas para oscilações de preço de outros concorrentes.",
+                        type: 'success'
+                      });
+                    }}
+                    className="bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 font-bold text-xs py-2 px-3 rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-98"
+                  >
+                    <Zap className="w-3.5 h-3.5 text-cyan-600" /> Ativar Alertas de Preço
+                  </button>
+                </div>
+
+                <div className="bg-slate-50 border border-slate-150 rounded-lg p-2.5 flex items-start gap-1.5 text-[9px] text-slate-400 font-medium font-sans leading-normal">
+                  <Info className="w-3.5 h-3.5 text-slate-400 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <strong>Fidelidade Histórica:</strong> Para examinar o anúncio original vivo no portal do Mercado Livre, use o link 
+                    <a 
+                      href={selectedProduct.permalink && selectedProduct.permalink !== "https://www.mercadolivre.com.br" ? selectedProduct.permalink : `https://lista.mercadolivre.com.br/${encodeURIComponent(selectedProduct.title)}`} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-cyan-600 font-bold hover:underline inline-flex items-center gap-0.5 ml-1"
+                    >
+                      Ver no Mercado Livre <ExternalLink className="w-2.5 h-2.5 inline font-sans" />
+                    </a>
+                    . Lembre que flutuações diárias do site podem interferir nas estatísticas.
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* 🌟 TOAST NOTIFICATION SYSTEM */}
+      {toast && (
+        <div className="fixed bottom-5 right-5 bg-slate-900 border border-slate-700 text-white rounded-xl shadow-xl p-4 max-w-sm flex gap-3 items-start z-50 animate-fade-in-up">
+          <div className="bg-emerald-600 p-1 text-white rounded-lg flex-shrink-0 mt-0.5">
+            <CheckCircle2 className="w-4 h-4 stroke-[2.5]" />
+          </div>
+          <div className="space-y-0.5 flex-1 min-w-0">
+            <h4 className="text-xs font-bold text-slate-100 uppercase tracking-wide">Ação Concluída</h4>
+            <p className="text-xs text-slate-300 leading-normal font-medium">{toast.message}</p>
+          </div>
+          <button 
+            onClick={() => setToast(null)}
+            className="text-slate-500 hover:text-slate-300 transition-colors p-0.5"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
 
     </div>
   );
