@@ -145,12 +145,7 @@ async function startServer() {
       { id: "1002", title: "Base Líquida Boca Rosa Beauty By Payot Mate Alta Cobertura", price: 54.50, img: "https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&w=400&q=80" },
       { id: "1003", title: "Batom Líquido Matte Max Love 12 Horas Secagem Rápida", price: 19.90, img: "https://images.unsplash.com/photo-1522335789253-ab4fc4033482?auto=format&fit=crop&w=400&q=80" },
       { id: "1004", title: "Rímel Máscara de Cílios Maybelline The Colossal Original Black", price: 39.90, img: "https://images.unsplash.com/photo-1512496015851-a90fb38ba796?auto=format&fit=crop&w=400&q=80" },
-      { id: "1005", title: "Paleta de Sombras de Maquiagem Nude Glitter Profissional", price: 69.90, img: "https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&w=400&q=80" },
-      { id: "1006", title: "Pó Compacto Facial Matte Prova D'água Soft Focus Balm", price: 28.90, img: "https://images.unsplash.com/photo-1526045478516-99145907023c?auto=format&fit=crop&w=400&q=80" },
-      { id: "1007", title: "Delineador Líquido Caneta Maquiagem Olhos Preto Intenso", price: 24.90, img: "https://images.unsplash.com/photo-1512496015851-a90fb38ba796?auto=format&fit=crop&w=400&q=80" },
-      { id: "1008", title: "Kit 12 Pincéis de Maquiagem Profissional Super Macios Cabo Marrom", price: 45.00, img: "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&w=400&q=80" },
-      { id: "1009", title: "Água Micelar L'Oréal Paris Hialurônico Purificante 200ml", price: 31.90, img: "https://images.unsplash.com/photo-1556228578-0d85b1a4d571?auto=format&fit=crop&w=400&q=80" },
-      { id: "1010", title: "Corretivo Líquido de Alta Cobertura Maquiagem Matte Vegano", price: 22.50, img: "https://images.unsplash.com/photo-1526045478516-99145907023c?auto=format&fit=crop&w=400&q=80" }
+      { id: "1005", title: "Paleta de Sombras de Maquiagem Nude Glitter Profissional", price: 69.90, img: "https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&w=400&q=80" }
     ];
 
     const techProducts = [
@@ -169,30 +164,63 @@ async function startServer() {
       { id: "3005", title: "Fone Bluetooth Sem Fio Air Pro 6 Anti-suor Academia Fit", price: 49.90, img: "https://images.unsplash.com/photo-1590658268037-6bf12165a8df?auto=format&fit=crop&w=400&q=80" }
     ];
 
-    const generalNichesList = [
-      { suffix: "Profissional Premium de Alta Qualidade", basePrice: 120.00, imgKey: "stand" },
-      { suffix: "Kit Completo Custo Benefício Garantido", basePrice: 85.50, imgKey: "backpack" },
-      { suffix: "Importado Original Edição Especial Limitada", basePrice: 249.00, imgKey: "watch" },
-      { suffix: "Compacto Ergonômico de Última Geração", basePrice: 59.90, imgKey: "mouse" },
-      { suffix: "Resistente de Alta Durabilidade Brasil", basePrice: 45.00, imgKey: "bottle" },
-      { suffix: "Inteligente com Conectividade Avançada", basePrice: 180.00, imgKey: "projector" },
-      { suffix: "Tradicional com Garantia Oficial de Fábrica", basePrice: 95.00, imgKey: "keyboard" }
+    const hardwareProducts = [
+      { id: "4001", title: "Dobradiça Caneco 35mm Amortecedor Slide On Para Armário C/ Parafuso", price: 4.80, img: "https://images.unsplash.com/photo-1621905252507-b354bc25edac?auto=format&fit=crop&w=400&q=80" },
+      { id: "4002", title: "Kit 10 Dobradiças Curvas Com Amortecedor E Click Para Armário de Cozinha", price: 68.90, img: "https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=400&q=80" },
+      { id: "4003", title: "Fechadura Digital Sobrepor FDS-10 Intelbras Automática Senha", price: 349.00, img: "https://images.unsplash.com/photo-1558002038-1055907df827?auto=format&fit=crop&w=400&q=80" },
+      { id: "4004", title: "Jogo De Chaves De Fenda E Philips Vonder Com 6 Peças Aço Cromo Vanádio", price: 42.50, img: "https://images.unsplash.com/photo-1504148455328-c376907d081c?auto=format&fit=crop&w=400&q=80" },
+      { id: "4005", title: "Parafusadeira E Furadeira De Impacto Bateria 12v Bosch Gsb 120-li C/ Maleta", price: 489.00, img: "https://images.unsplash.com/photo-1534224039826-c7a0dea0e66a?auto=format&fit=crop&w=400&q=80" }
     ];
 
-    const imageAssets: Record<string, string> = {
-      watch: "https://images.unsplash.com/photo-1508685096489-7aacd43bd3b1?auto=format&fit=crop&w=400&q=80",
-      projector: "https://images.unsplash.com/photo-1535016120720-40c646be5580?auto=format&fit=crop&w=400&q=80",
-      stand: "https://images.unsplash.com/photo-1603481588273-2f908a9a7a1b?auto=format&fit=crop&w=400&q=80",
-      keyboard: "https://images.unsplash.com/photo-1618384887929-16ec33fab9ef?auto=format&fit=crop&w=400&q=80",
-      mouse: "https://images.unsplash.com/photo-1615663245857-ac93bb7c39e7?auto=format&fit=crop&w=400&q=80",
-      backpack: "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=400&q=80",
-      bottle: "https://images.unsplash.com/photo-1602143407151-7111542de6e8?auto=format&fit=crop&w=400&q=80"
+    const furnitureProducts = [
+      { id: "5001", title: "Guarda-Roupa Casal Com Espelho 3 Portas de Correr Madesa", price: 899.90, img: "https://images.unsplash.com/photo-1558882224-cca166733365?auto=format&fit=crop&w=400&q=80" },
+      { id: "5002", title: "Guarda-Roupa Solteiro 2 Portas de Correr E 2 Gavetas Kappesberg", price: 419.00, img: "https://images.unsplash.com/photo-1595428774223-ef52624120d2?auto=format&fit=crop&w=400&q=80" },
+      { id: "5003", title: "Armário de Cozinha Completa 4 Peças Com Balcão Emília Siena Móveis", price: 649.90, img: "https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&w=400&q=80" },
+      { id: "5004", title: "Mesa De Jantar Estilo Industrial Tampo de Madeira 120x80cm C/ 4 Cadeiras", price: 549.90, img: "https://images.unsplash.com/photo-1538688525198-9b88f6f53126?auto=format&fit=crop&w=400&q=80" },
+      { id: "5005", title: "Cama Box Casal Conjugada Espuma D28 Firme Resistente Ortobom", price: 589.00, img: "https://images.unsplash.com/photo-1540518614846-7eded433c457?auto=format&fit=crop&w=400&q=80" }
+    ];
+
+    const fashionProducts = [
+      { id: "6001", title: "Kit 10 Camisetas Maculinas Básicas Algodão Premium Casual", price: 159.90, img: "https://images.unsplash.com/photo-1489987707025-afc232f7ea0f?auto=format&fit=crop&w=400&q=80" },
+      { id: "6002", title: "Tênis Masculino Para Corrida Academia Caminhada Macio Antiderrapante", price: 99.00, img: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=400&q=80" },
+      { id: "6003", title: "Vestido Longo Feminino Canelado Com Fenda Lateral Elegante Confortável", price: 69.90, img: "https://images.unsplash.com/photo-1612336307429-8a898d10e223?auto=format&fit=crop&w=400&q=80" },
+      { id: "6004", title: "Bolsa Feminina Transversal Tiracolo Pequena Texturizada Alça Regulável", price: 59.90, img: "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=400&q=80" }
+    ];
+
+    const automotiveProducts = [
+      { id: "7001", title: "Pneu Aro 14 Pirelli Formula Evo 175/65R14 82T Original Novo", price: 299.90, img: "https://images.unsplash.com/photo-1580273916550-e323be2ae537?auto=format&fit=crop&w=400&q=80" },
+      { id: "7002", title: "Kit Palheta Limpador de Parabrisa Silicone Dianteiro Traseiro Completo", price: 34.90, img: "https://images.unsplash.com/photo-1486006920555-c77dce18193b?auto=format&fit=crop&w=400&q=80" },
+      { id: "7003", title: "Capacete Moto Pro Tork Evolution G8 Original Várias Cores Certificado INMETRO", price: 189.00, img: "https://images.unsplash.com/photo-1599819811279-d5ad9cccf838?auto=format&fit=crop&w=400&q=80" }
+    ];
+
+    const generalNichesList = [
+      { suffix: "Profissional Premium de Alta Qualidade", basePrice: 120.00 },
+      { suffix: "Kit Completo Custo Benefício Garantido", basePrice: 85.55 },
+      { suffix: "Importado Original Edição Especial Limitada", basePrice: 249.00 },
+      { suffix: "Compacto Ergonômico de Última Geração", basePrice: 59.90 },
+      { suffix: "Resistente de Alta Durabilidade Brasil", basePrice: 45.00 },
+      { suffix: "Inteligente com Conectividade Avançada", basePrice: 180.00 },
+      { suffix: "Tradicional com Garantia Oficial de Fábrica", basePrice: 95.00 }
+    ];
+
+    const normalizeText = (str: string) => {
+      if (!str) return "";
+      return str
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "") // remove accents
+        .replace(/[^a-z0-9\s-]/g, ""); // keep only safe characters
     };
 
+    const normQuery = normalizeText(queryStr);
     const results: any[] = [];
-    const isBeautyNiche = lowerQuery.includes("maquiagem") || lowerQuery.includes("batom") || lowerQuery.includes("rimel") || lowerQuery.includes("sombra") || lowerQuery.includes("base") || lowerQuery.includes("beleza") || lowerQuery.includes("cosmet") || lowerQuery.includes("pincel") || lowerQuery.includes("makeup") || lowerQuery.includes("cuidado");
-    const isTechNiche = lowerQuery.includes("celular") || lowerQuery.includes("smartphone") || lowerQuery.includes("iphone") || lowerQuery.includes("xiaomi") || lowerQuery.includes("samsung") || lowerQuery.includes("redmi") || lowerQuery.includes("motorola");
-    const isAudioNiche = lowerQuery.includes("fone") || lowerQuery.includes("headset") || lowerQuery.includes("audio") || lowerQuery.includes("som") || lowerQuery.includes("bluetooth") || lowerQuery.includes("jbl");
+    const isBeautyNiche = normQuery.includes("maquiagem") || normQuery.includes("batom") || normQuery.includes("rimel") || normQuery.includes("sombra") || normQuery.includes("base") || normQuery.includes("beleza") || normQuery.includes("cosmet") || normQuery.includes("pincel") || normQuery.includes("makeup") || normQuery.includes("cuidado");
+    const isTechNiche = normQuery.includes("celular") || normQuery.includes("smartphone") || normQuery.includes("iphone") || normQuery.includes("xiaomi") || normQuery.includes("samsung") || normQuery.includes("redmi") || normQuery.includes("motorola");
+    const isAudioNiche = normQuery.includes("fone") || normQuery.includes("headset") || normQuery.includes("audio") || normQuery.includes("som") || normQuery.includes("bluetooth") || normQuery.includes("jbl");
+    const isHardwareNiche = normQuery.includes("dobradica") || normQuery.includes("fechadura") || normQuery.includes("parafuso") || normQuery.includes("prego") || normQuery.includes("ferramenta") || normQuery.includes("furadeira") || normQuery.includes("parafusadeira") || normQuery.includes("corredica") || normQuery.includes("trilho") || normQuery.includes("puxador");
+    const isFurnitureNiche = normQuery.includes("guarda") || normQuery.includes("roupa") || normQuery.includes("armario") || normQuery.includes("sofa") || normQuery.includes("mesa") || normQuery.includes("cadeira") || normQuery.includes("moveis") || normQuery.includes("cama") || normQuery.includes("comoda") || normQuery.includes("colchao");
+    const isFashionNiche = normQuery.includes("camisa") || normQuery.includes("camiseta") || normQuery.includes("calca") || normQuery.includes("vestido") || normQuery.includes("casaco") || normQuery.includes("tenis") || normQuery.includes("sapato") || normQuery.includes("bolsa") || normQuery.includes("mochila") || normQuery.includes("meia");
+    const isAutomotiveNiche = normQuery.includes("pneu") || normQuery.includes("calota") || normQuery.includes("farol") || normQuery.includes("veiculo") || normQuery.includes("carro") || normQuery.includes("moto") || normQuery.includes("capacete");
 
     for (let i = 0; i < count; i++) {
       const hash = lowerQuery.split('').reduce((acc, char, idx) => acc + char.charCodeAt(0) * (idx + 1), 0) + i + 101;
@@ -219,13 +247,37 @@ async function startServer() {
         finalTitle = item.title;
         price = item.price;
         thumbnail = item.img;
+      } else if (isHardwareNiche) {
+        const item = hardwareProducts[hash % hardwareProducts.length];
+        finalId = `MLB401${item.id}${100 + i}`;
+        finalTitle = item.title;
+        price = item.price;
+        thumbnail = item.img;
+      } else if (isFurnitureNiche) {
+        const item = furnitureProducts[hash % furnitureProducts.length];
+        finalId = `MLB501${item.id}${100 + i}`;
+        finalTitle = item.title;
+        price = item.price;
+        thumbnail = item.img;
+      } else if (isFashionNiche) {
+        const item = fashionProducts[hash % fashionProducts.length];
+        finalId = `MLB601${item.id}${100 + i}`;
+        finalTitle = item.title;
+        price = item.price;
+        thumbnail = item.img;
+      } else if (isAutomotiveNiche) {
+        const item = automotiveProducts[hash % automotiveProducts.length];
+        finalId = `MLB701${item.id}${100 + i}`;
+        finalTitle = item.title;
+        price = item.price;
+        thumbnail = item.img;
       } else {
         const item = generalNichesList[hash % generalNichesList.length];
         finalId = `MLB987${i}${150 + i}`;
         const phraseTitle = queryStr.charAt(0).toUpperCase() + queryStr.slice(1);
         finalTitle = `${phraseTitle} - ${item.suffix} ${i + 1}`;
         price = Math.round((item.basePrice * (0.8 + (hash % 40) / 100)) * 10) / 10 || 59.90;
-        thumbnail = imageAssets[item.imgKey] || "https://images.unsplash.com/photo-1546868871-7041f2a55e12?auto=format&fit=crop&w=400&q=80";
+        thumbnail = "https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=400&q=80"; // Clean elegant package product shot
       }
 
       if (finalTitle.length > 80) {

@@ -170,17 +170,94 @@ export default function OportunidadesMercado({ isMeliConnected, isMeliOfficial, 
     oportunityClass: 'Alta'
   });
 
+  // Helper to remove accents and special characters for bulletproof matching
+  const normalizeForMatching = (str: string) => {
+    if (!str) return '';
+    return str
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "") // remove accents/diacritics
+      .replace(/[^a-z0-9\s-]/g, "");    // keep only alpha, digits, spaces, hyphens
+  };
+
   // Helper and sorting functions for the premium spreadsheet table view
   const getProductCategory = (title: string) => {
-    const t = title.toLowerCase();
-    if (t.includes('fone') || t.includes('bluetooth') || t.includes('earphone') || t.includes('headset')) return 'Eletrônicos, Áudio e Vídeo';
-    if (t.includes('celular') || t.includes('smartphone') || t.includes('telefone') || t.includes('iphone') || t.includes('galaxy') || t.includes('redmi')) return 'Celulares e Telefones';
-    if (t.includes('carregador') || t.includes('cabo') || t.includes('capa') || t.includes('case') || t.includes('m14') || t.includes('m54') || t.includes('película')) return 'Acessórios para Celulares';
-    if (t.includes('teclado') || t.includes('mouse') || t.includes('usb') || t.includes('gaming') || t.includes('desk') || t.includes('suporte')) return 'Informática';
-    if (t.includes('creme') || t.includes('maquiagem') || t.includes('beleza') || t.includes('perfume') || t.includes('shampoo')) return 'Beleza e Cuidado Pessoal';
-    if (t.includes('jogo') || t.includes('game') || t.includes('console') || t.includes('ps5') || t.includes('xbox')) return 'Games';
-    if (t.includes('casa') || t.includes('móveis') || t.includes('decoração') || t.includes('suporte') || t.includes('organizador')) return 'Casa, Móveis e Decoração';
-    return 'Celulares e Telefones'; // Default matching the general Meli layout
+    const t = normalizeForMatching(title);
+    
+    // Tools and Hardware first to avoid 'suporte' mapping directly to Informatica
+    if (t.includes('dobradica') || t.includes('fechadura') || t.includes('parafuso') || t.includes('prego') || t.includes('puxador') || t.includes('ferragem') || t.includes('trilho') || t.includes('corredica')) {
+      return 'Casa, Móveis e Decoração';
+    }
+    if (t.includes('ferramenta') || t.includes('furadeira') || t.includes('parafusadeira') || t.includes('trena') || t.includes('alicate') || t.includes('martelo')) {
+      return 'Ferramentas';
+    }
+    if (t.includes('roupa') || t.includes('camisa') || t.includes('camiseta') || t.includes('calca') || t.includes('vestido') || t.includes('casaco') || t.includes('meia') || t.includes('sapato') || t.includes('tenis') || t.includes('bolsa') || t.includes('mochila')) {
+      return 'Calçados, Roupas e Bolsas';
+    }
+    if (t.includes('fone') || t.includes('bluetooth') || t.includes('earphone') || t.includes('headset') || t.includes('caixa de som')) {
+      return 'Eletrônicos, Áudio e Vídeo';
+    }
+    if (t.includes('celular') || t.includes('smartphone') || t.includes('telefone') || t.includes('iphone') || t.includes('galaxy') || t.includes('redmi')) {
+      return 'Celulares e Telefones';
+    }
+    if (t.includes('carregador') || t.includes('cabo') || t.includes('capa') || t.includes('case') || t.includes('m14') || t.includes('m54') || t.includes('pelicula')) {
+      return 'Acessórios para Celulares';
+    }
+    if (t.includes('teclado') || t.includes('mouse') || t.includes('usb') || t.includes('gaming') || t.includes('desk') || t.includes('suporte')) {
+      return 'Informática';
+    }
+    if (t.includes('creme') || t.includes('maquiagem') || t.includes('beleza') || t.includes('perfume') || t.includes('shampoo')) {
+      return 'Beleza e Cuidado Pessoal';
+    }
+    if (t.includes('jogo') || t.includes('game') || t.includes('console') || t.includes('ps5') || t.includes('xbox')) {
+      return 'Games';
+    }
+    if (t.includes('casa') || t.includes('moveis') || t.includes('decoracao') || t.includes('suporte') || t.includes('organizador') || t.includes('guarda-roupa') || t.includes('guarda roupa') || t.includes('armario') || t.includes('sofa') || t.includes('mesa') || t.includes('cadeira') || t.includes('cama')) {
+      return 'Casa, Móveis e Decoração';
+    }
+    if (t.includes('pneu') || t.includes('calota') || t.includes('farol') || t.includes('veiculo') || t.includes('carro') || t.includes('moto') || t.includes('capacete')) {
+      return 'Acessórios para Veículos';
+    }
+    
+    return 'Casa, Móveis e Decoração'; // Safer default than Celulares e Telefones
+  };
+
+  const getProductBrand = (title: string, category: string, hash: number) => {
+    const t = normalizeForMatching(title);
+    if (category === 'Celulares e Telefones' || t.includes('celular') || t.includes('smartphone') || t.includes('iphone') || t.includes('galaxy')) {
+      const b = ["Samsung", "Xiaomi", "Apple", "Motorola", "Realme", "Infinix"];
+      return b[hash % b.length];
+    }
+    if (category === 'Acessórios para Celulares' || t.includes('carregador') || t.includes('cabo') || t.includes('fone') || t.includes('bluetooth') || t.includes('ugreen')) {
+      const b = ["Baseus", "Ugreen", "Essager", "Anker", "Intelbras", "MeliPro"];
+      return b[hash % b.length];
+    }
+    if (category === 'Informática' || t.includes('teclado') || t.includes('mouse') || t.includes('notebook')) {
+      const b = ["Logitech", "Redragon", "Dell", "Lenovo", "Razer", "Multilaser"];
+      return b[hash % b.length];
+    }
+    if (category === 'Casa, Móveis e Decoração' || t.includes('dobradica') || t.includes('armario') || t.includes('guarda') || t.includes('cama') || t.includes('sofa') || t.includes('mesa') || t.includes('cadeira') || t.includes('puxador') || t.includes('parafuso')) {
+      const b = ["Kappesberg", "Madesa", "Henn", "Tramontina", "Ortobom", "Vonder", "Soprano", "Silvana", "Lafonte"];
+      return b[hash % b.length];
+    }
+    if (category === 'Ferramentas' || t.includes('furadeira') || t.includes('parafusadeira')) {
+      const b = ["Bosch", "DeWalt", "Makita", "Vonder", "Black+Decker", "Wap"];
+      return b[hash % b.length];
+    }
+    if (category === 'Beleza e Cuidado Pessoal' || t.includes('maquiagem') || t.includes('perfume') || t.includes('shampoo')) {
+      const b = ["Ruby Rose", "Boca Rosa", "Eudora", "O Boticário", "Natura", "L'Oréal"];
+      return b[hash % b.length];
+    }
+    if (category === 'Calçados, Roupas e Bolsas' || t.includes('roupa') || t.includes('vestido') || t.includes('tenis')) {
+      const b = ["Nike", "Adidas", "Hering", "Zara", "Olympikus", "Santa Lolla"];
+      return b[hash % b.length];
+    }
+    if (category === 'Acessórios para Veículos' || t.includes('pneu') || t.includes('capacete')) {
+      const b = ["Pirelli", "Michelin", "Pro Tork", "CapaPro", "TechOne", "Osram"];
+      return b[hash % b.length];
+    }
+    const fallbackBrands = ["OEM", "Mondial", "Philco", "Britânia", "Tramontina", "Vonder"];
+    return fallbackBrands[hash % fallbackBrands.length];
   };
 
   const getAdStartDate = (ageDays: number) => {
@@ -507,8 +584,8 @@ export default function OportunidadesMercado({ isMeliConnected, isMeliOfficial, 
           const imagesCount = (hashChar % 5) + 3; // 3 to 7 images
           const reviewsCount = (hashChar * idx % 350) + 12; // 12 to 362 reviews
           const revenue = p.price * sales;
-          const brands = ["Samsung", "Xiaomi", "Apple", "Baseus", "Essager", "Ugreen", "MeliPro", "OEM", "Philco", "Mondial"];
-          const brand = brands[(hashChar + idx) % brands.length];
+          const inferredCategory = getProductCategory(p.title);
+          const brand = getProductBrand(p.title, inferredCategory, hashChar + idx);
           const isOfficialStore = (hashChar * idx) % 3 === 0;
           const reputations: ('green' | 'gold' | 'yellow' | 'red')[] = ['green', 'gold', 'yellow', 'red'];
           const sellerReputation = reputations[(hashChar + idx) % reputations.length];
