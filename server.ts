@@ -334,7 +334,7 @@ async function startServer() {
         domain_id: `MLB_${(activeSearchCriterion || 'produtos').toUpperCase().replace(/[^A-Z0-9]/g, '_')}`,
         catalog_listing: hash % 6 === 0,
         catalog_product_id: hash % 6 === 0 ? `MLB_CAT_${hash % 4500}` : null,
-        permalink: `https://lista.mercadolivre.com.br/${encodeURIComponent(finalTitle)}`
+        permalink: `https://produto.mercadolivre.com.br/MLB-${finalId.replace(/[^\d]/g, '')}`
       });
     }
 

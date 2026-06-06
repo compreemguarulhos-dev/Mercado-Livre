@@ -7,6 +7,7 @@ import {
   X, Copy, ExternalLink, Info, Download, MoreVertical
 } from 'lucide-react';
 import { getApiUrl } from '../utils';
+import MeliAPIDiagnosticsPanel from './MeliAPIDiagnosticsPanel';
 
 // Interfaces for our opportunities models
 interface Category {
@@ -564,7 +565,9 @@ export default function OportunidadesMercado({ isMeliConnected, isMeliOfficial, 
             sellerMedal: 'platinum',
             freeShipping: item.shipping?.free_shipping ?? false,
             state: 'SP',
-            permalink: item.permalink || `https://produto.mercadolivre.com.br/${item.id}`,
+            permalink: item.permalink && !item.permalink.includes("lista.mercadolivre.com.br")
+              ? item.permalink
+              : `https://produto.mercadolivre.com.br/MLB-${item.id.replace(/[^\d]/g, '')}`,
             thumbnail: (item.thumbnail || "").replace("http://", "https://").replace("-I.jpg", "-O.jpg").replace("-I.jpeg", "-O.jpeg").replace("-I.png", "-O.png"),
             logisticType: 'fulfillment',
             isInternational: false,
@@ -2231,6 +2234,32 @@ export default function OportunidadesMercado({ isMeliConnected, isMeliOfficial, 
 
               </div>
 
+              {/* API Diagnostics Panel */}
+              <div className="mt-5">
+                <MeliAPIDiagnosticsPanel 
+                  searchQuery={winnerSearchKeyword}
+                  isMeliConnected={isMeliConnected}
+                  sellerNickname={sellerNickname}
+                  isMeliOfficial={isMeliOfficial}
+                  itemsLimit={itemsLimit}
+                  currentPage={currentPage}
+                  isOpportunityView={true}
+                  activeFiltersCount={
+                    (filterCategory ? 1 : 0) + (envioFull ? 1 : 0) + (envioFreteGratis ? 1 : 0) + 
+                    (envioInternacional ? 1 : 0) + (maisVendidoOption !== 'both' ? 1 : 0) + 
+                    (catalogoOption !== 'both' ? 1 : 0) + (precoMin ? 1 : 0) + (precoMax ? 1 : 0) + 
+                    (receitaMin ? 1 : 0) + (receitaMax ? 1 : 0) + (vendasMensaisMin ? 1 : 0) + 
+                    (vendasMensaisMax ? 1 : 0) + (tempoAnuncioMin ? 1 : 0) + (tempoAnuncioMax ? 1 : 0) +
+                    (imagensMin ? 1 : 0) + (imagensMax ? 1 : 0) + (vendedorQuery ? 1 : 0) + 
+                    (vendedorMedal ? 1 : 0) + (vendedorReputacao ? 1 : 0) + (marcaQuery ? 1 : 0) + 
+                    (lojaOficialOption !== 'both' ? 1 : 0)
+                  }
+                  selectedCategory={filterCategory}
+                  brandQuery={marcaQuery}
+                  sellerQuery={vendedorQuery}
+                />
+              </div>
+
             </div>
 
             {/* General Metadata Report panel calculated on top of API results */}
@@ -2547,7 +2576,7 @@ export default function OportunidadesMercado({ isMeliConnected, isMeliOfficial, 
                                     <td className="py-2 px-4 max-w-[280px]">
                                       <div className="flex flex-col text-left">
                                         <a 
-                                          href={product.permalink && product.permalink !== "https://www.mercadolivre.com.br" ? product.permalink : `https://produto.mercadolivre.com.br/MLB-${product.id.replace(/[^\d]/g, '')}`}
+                                          href={product.permalink && !product.permalink.includes("lista.mercadolivre.com.br") && product.permalink !== "https://www.mercadolivre.com.br" ? product.permalink : `https://produto.mercadolivre.com.br/MLB-${product.id.replace(/[^\d]/g, '')}`}
                                           target="_blank"
                                           rel="noopener noreferrer"
                                           onClick={(e) => e.stopPropagation()}
@@ -2652,7 +2681,7 @@ export default function OportunidadesMercado({ isMeliConnected, isMeliOfficial, 
                                     {/* Vendedor */}
                                     <td className="py-2 px-4">
                                       <a 
-                                        href={product.permalink && product.permalink !== "https://www.mercadolivre.com.br" ? product.permalink : `https://produto.mercadolivre.com.br/MLB-${product.id.replace(/[^\d]/g, '')}`}
+                                        href={product.permalink && !product.permalink.includes("lista.mercadolivre.com.br") && product.permalink !== "https://www.mercadolivre.com.br" ? product.permalink : `https://produto.mercadolivre.com.br/MLB-${product.id.replace(/[^\d]/g, '')}`}
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         onClick={(e) => e.stopPropagation()}
@@ -3028,7 +3057,7 @@ export default function OportunidadesMercado({ isMeliConnected, isMeliOfficial, 
         const catName = getProductCategory(selectedProduct.title);
         
         // ML Official URL
-        const mlUrl = selectedProduct.permalink && selectedProduct.permalink !== "https://www.mercadolivre.com.br" 
+        const mlUrl = selectedProduct.permalink && !selectedProduct.permalink.includes("lista.mercadolivre.com.br") && selectedProduct.permalink !== "https://www.mercadolivre.com.br" 
           ? selectedProduct.permalink 
           : `https://produto.mercadolivre.com.br/MLB-${selectedProduct.id.replace(/[^\d]/g, '')}`;
 
@@ -3073,7 +3102,7 @@ export default function OportunidadesMercado({ isMeliConnected, isMeliOfficial, 
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                   
                   {/* LADO ESQUERDO: BARRA LATERAL DO PRODUTO (4 columns) */}
-                  <div className="lg:col-span-4 space-y-5 text-left">
+                  <div className="lg:col-span-4 space-y-5 text-left font-sans">
                     
                     {/* Imagem Card Box */}
                     <div className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-sm flex items-center justify-center h-64 relative">

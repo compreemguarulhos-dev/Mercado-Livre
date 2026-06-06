@@ -6,6 +6,7 @@ import {
   ExternalLink, X, Percent, BarChart3, Copy
 } from 'lucide-react';
 import { getApiUrl } from '../utils';
+import MeliAPIDiagnosticsPanel from './MeliAPIDiagnosticsPanel';
 
 // Friendly Meli Item structure focusing on client outcomes
 interface MeliItem {
@@ -124,7 +125,9 @@ export default function InteligenciaMercado({ isMeliConnected, isMeliOfficial, s
               : "GERAL",
             demandLevel: 'Alta',
             score: 95,
-            permalink: item.permalink || `https://produto.mercadolivre.com.br/MLB-${item.id}`
+            permalink: item.permalink && !item.permalink.includes("lista.mercadolivre.com.br") 
+              ? item.permalink 
+              : `https://produto.mercadolivre.com.br/MLB-${item.id.replace(/[^\d]/g, '')}`
           };
           setResults([mappedObj]);
           setLoading(false);
@@ -194,7 +197,9 @@ export default function InteligenciaMercado({ isMeliConnected, isMeliOfficial, s
               : "GERAL",
             demandLevel: soldCount > 500 ? 'Alta' : soldCount > 80 ? 'Média' : 'Normal',
             score: score,
-            permalink: item.permalink || `https://produto.mercadolivre.com.br/MLB-${item.id}`
+            permalink: item.permalink && !item.permalink.includes("lista.mercadolivre.com.br")
+              ? item.permalink
+              : `https://produto.mercadolivre.com.br/MLB-${item.id.replace(/[^\d]/g, '')}`
           };
         });
 
@@ -473,6 +478,17 @@ export default function InteligenciaMercado({ isMeliConnected, isMeliOfficial, s
             </div>
           </div>
 
+          <MeliAPIDiagnosticsPanel 
+            searchQuery={searchQuery}
+            isMeliConnected={isMeliConnected}
+            sellerNickname={sellerNickname}
+            isMeliOfficial={isMeliOfficial}
+            itemsLimit={itemsLimit}
+            currentPage={currentPage}
+            isOpportunityView={false}
+            activeFiltersCount={(onlyNew !== 'all' ? 1 : 0) + (onlyFreeShipping ? 1 : 0) + (priceRange !== 'all' ? 1 : 0)}
+          />
+
         </div>
 
         {/* COLUNA DIREITA (Lista de Resultados Incríveis) */}
@@ -652,7 +668,7 @@ export default function InteligenciaMercado({ isMeliConnected, isMeliOfficial, s
                     {/* Botões integrados de ação */}
                     <div className="pt-3 border-t border-dashed border-slate-100 mt-3 flex flex-wrap gap-2 items-center justify-between font-sans">
                       <a 
-                        href={item.permalink && item.permalink !== "https://www.mercadolivre.com.br" ? item.permalink : `https://produto.mercadolivre.com.br/MLB-${item.id.replace(/[^\d]/g, '')}`}
+                        href={item.permalink && !item.permalink.includes("lista.mercadolivre.com.br") && item.permalink !== "https://www.mercadolivre.com.br" ? item.permalink : `https://produto.mercadolivre.com.br/MLB-${item.id.replace(/[^\d]/g, '')}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         onClick={(e) => e.stopPropagation()}
@@ -738,7 +754,8 @@ export default function InteligenciaMercado({ isMeliConnected, isMeliOfficial, s
             
             {/* Lado Esquerdo - Visual do Anúncio */}
             <div className="md:w-2/5 bg-slate-50 p-6 flex flex-col justify-between border-b md:border-b-0 md:border-r border-slate-200 overflow-y-auto">
-              <div className="space-y-4">
+              <div className="space-y-4 font-sans">
+                
                 <div className="flex justify-between items-center">
                   <span className="text-[10px] font-bold text-indigo-650 bg-indigo-50 px-2 py-0.5 rounded-full uppercase tracking-wider">Visualização de Inteligência</span>
                   <div className="flex gap-1.5 flex-wrap">
@@ -995,7 +1012,7 @@ export default function InteligenciaMercado({ isMeliConnected, isMeliOfficial, s
                   <div>
                     <strong>Link do Anúncio Original:</strong> Para inspecionar no ambiente de compras original, você pode 
                     <a 
-                      href={selectedProduct.permalink} 
+                      href={selectedProduct.permalink && !selectedProduct.permalink.includes("lista.mercadolivre.com.br") ? selectedProduct.permalink : `https://produto.mercadolivre.com.br/MLB-${selectedProduct.id.replace(/[^\d]/g, '')}`} 
                       target="_blank" 
                       rel="noopener noreferrer"
                       className="text-indigo-600 font-bold hover:underline inline-flex items-center gap-0.5 ml-1"
