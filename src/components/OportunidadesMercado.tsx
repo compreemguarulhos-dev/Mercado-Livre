@@ -128,6 +128,19 @@ export default function OportunidadesMercado({ isMeliConnected, isMeliOfficial, 
   const minimumStars = Number(classificacaoMin);
 
   const [detectedWinners, setDetectedWinners] = useState<OpportunityProduct[]>([]);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [itemsLimit, setItemsLimit] = useState<number>(24);
+
+  // Reset page size to 1 when filters or query change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [
+    winnerSearchKeyword, filterCategory, envioFull, envioFreteGratis, envioInternacional,
+    maisVendidoOption, catalogoOption, precoMin, precoMax, receitaMin, receitaMax,
+    vendasMensaisMin, vendasMensaisMax, tempoAnuncioMin, tempoAnuncioMax, imagensMin, imagensMax,
+    avaliacoesMin, avaliacoesMax, classificacaoMin, classificacaoMax, vendedorQuery,
+    vendedorMedal, vendedorReputacao, marcaQuery, lojaOficialOption
+  ]);
   
   // States for Winner Product analytic details modal and dynamic toast system
   const [selectedProduct, setSelectedProduct] = useState<OpportunityProduct | null>(null);
@@ -314,9 +327,10 @@ export default function OportunidadesMercado({ isMeliConnected, isMeliOfficial, 
     const siteId = getSiteId();
     const cleanWord = encodeURIComponent(winnerSearchKeyword.trim() || 'fone bluetooth');
     const attributesStr = "results.id,results.title,results.price,results.thumbnail,results.shipping,results.condition,results.permalink,results.sold_quantity,results.available_quantity,results.domain_id,results.catalog_listing,results.catalog_product_id";
+    const offset = (currentPage - 1) * itemsLimit;
     
-    // We trigger the proxy endpoint
-    const url = getApiUrl(`/api/meli/search?siteId=${siteId}&q=${cleanWord}&limit=50&attributes=${attributesStr}`);
+    // We trigger the proxy endpoint with dynamic limit and offset
+    const url = getApiUrl(`/api/meli/search?siteId=${siteId}&q=${cleanWord}&limit=${itemsLimit}&offset=${offset}&attributes=${attributesStr}`);
 
     const headers: Record<string, string> = {
       "Accept": "application/json"
@@ -1099,7 +1113,9 @@ export default function OportunidadesMercado({ isMeliConnected, isMeliOfficial, 
     vendedorMedal,
     vendedorReputacao,
     marcaQuery,
-    lojaOficialOption
+    lojaOficialOption,
+    currentPage,
+    itemsLimit
   ]);
 
   // --- TAB 3 TRIGGER: KEYWORD COMPARATOR & SYNONYMS GAP ANALYSIS ---
@@ -1979,14 +1995,22 @@ export default function OportunidadesMercado({ isMeliConnected, isMeliOfficial, 
             ) : (
               <div className="space-y-4">
                 
-                <h4 className="text-xs font-mono uppercase font-bold text-slate-500 border-b border-slate-100 pb-2">Produtos Vencedores Detectados ({detectedWinners.length}):</h4>
+                {/* Resumo da busca */}
+                <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 px-4 text-xs font-semibold text-slate-650 flex flex-col md:flex-row justify-between md:items-center gap-2 shadow-3xs">
+                  <span>Anúncios Vencedores para Varredura: <strong className="text-slate-800 font-bold">"{winnerSearchKeyword}"</strong></span>
+                  <span className="bg-cyan-50 border border-cyan-200 text-[10px] px-2.5 py-0.5 rounded text-cyan-800 font-mono font-bold flex items-center gap-1 font-sans">
+                    <Zap className="w-3 h-3 text-cyan-600 animate-pulse" />
+                    Otimizado via API &bull; {itemsLimit} itens &bull; Página {currentPage}
+                  </span>
+                </div>
                 
                 {detectedWinners.length === 0 ? (
                   <div className="bg-slate-50 text-slate-400 border border-slate-200 text-center py-16 rounded-xl font-medium text-xs w-full">
                     Nenhum anúncio correspondente foi localizado com as estritas regras de filtragem aplicadas. Tente flexibilizar os limites de estrelas ou de idade!
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {detectedWinners.map((product) => (
                       <div 
                         key={product.id}
@@ -2017,7 +2041,14 @@ export default function OportunidadesMercado({ isMeliConnected, isMeliOfficial, 
                           {/* Text context details */}
                           <div className="space-y-1.5 flex-1 min-w-0">
                             <div className="flex justify-between items-start gap-2">
-                              <span className="bg-slate-100 text-slate-700 font-mono text-[9px] px-1.5 py-0.5 rounded font-bold">{product.id}</span>
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                <span className="bg-slate-900 text-white font-sans text-[8px] font-black px-1.5 py-0.5 rounded select-none uppercase tracking-wider">
+                                  ANÚNCIO ATIVO
+                                </span>
+                                <span className="bg-slate-100 text-slate-700 font-mono text-[9px] px-1.5 py-0.5 rounded font-bold">
+                                  MLB-{product.id.replace(/[^\d]/g, '') || product.id}
+                                </span>
+                              </div>
                               <span className="text-slate-400 text-[10px] items-center gap-1 flex font-mono"><MapPin className="w-3 h-3" /> {product.state}</span>
                             </div>
 
@@ -2092,18 +2123,82 @@ export default function OportunidadesMercado({ isMeliConnected, isMeliOfficial, 
                           </div>
                         </div>
 
-                        {/* Botão de analise integrado */}
-                        <div className="pt-3 border-t border-dashed border-slate-100 mt-3 flex items-center justify-between">
-                          <span className="text-[10px] text-slate-400 font-medium">Análise de Lucratividade MeliPro</span>
-                          <button className="bg-cyan-50 group-hover:bg-cyan-600 text-cyan-705 group-hover:text-white font-bold text-[11px] py-1.5 px-3 rounded-lg flex items-center gap-1.5 transition-all">
-                            <Sparkles className="w-3.5 h-3.5" /> Analisar Margem & Concorrência 📊
-                          </button>
-                        </div>
+                          {/* Botões integrados de ação */}
+                          <div className="pt-3 border-t border-dashed border-slate-100 mt-3 flex flex-wrap gap-2 items-center justify-between font-sans">
+                            <a 
+                              href={product.permalink && product.permalink !== "https://www.mercadolivre.com.br" ? product.permalink : `https://produto.mercadolivre.com.br/MLB-${product.id.replace(/[^\d]/g, '')}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 font-bold text-[11px] py-1.5 px-3 rounded-lg flex items-center gap-1 transition-all cursor-pointer select-none"
+                            >
+                              Ver no Mercado Livre 🚀 <ExternalLink className="w-3 h-3 text-slate-500" />
+                            </a>
+                            
+                            <button 
+                              className="bg-cyan-50 group-hover:bg-cyan-600 text-cyan-705 group-hover:text-white font-bold text-[11px] py-1.5 px-3 rounded-lg flex items-center gap-1.5 transition-all cursor-pointer"
+                            >
+                              <Sparkles className="w-3.5 h-3.5" /> Analisar Margem & Concorrência 📊
+                            </button>
+                          </div>
 
                       </div>
                     ))}
                   </div>
-                )}
+
+                  {/* Paginação de Anúncios Otimizada */}
+                  <div className="bg-white border border-slate-200 rounded-xl p-4 flex flex-col md:flex-row justify-between items-center gap-4 shadow-3xs font-sans mt-4">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-slate-550 font-semibold">Tamanho da Página:</span>
+                      <select
+                        value={itemsLimit}
+                        onChange={(e) => {
+                          setItemsLimit(Number(e.target.value));
+                          setCurrentPage(1);
+                        }}
+                        className="bg-slate-50 border border-slate-250 rounded-lg p-1.5 px-2.5 text-xs font-bold text-slate-700 outline-none focus:border-cyan-500"
+                      >
+                        <option value={12}>12 anúncios</option>
+                        <option value={24}>24 anúncios</option>
+                        <option value={48}>48 anúncios</option>
+                        <option value={80}>80 anúncios</option>
+                      </select>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <button
+                        disabled={currentPage === 1}
+                        onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                        className="px-3 py-1.5 text-xs font-bold rounded-lg border bg-white border-slate-200 text-slate-650 hover:bg-slate-50 hover:text-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all cursor-pointer select-none"
+                      >
+                        ← Anterior
+                      </button>
+                      <span className="text-xs font-extrabold text-slate-800 bg-slate-100 p-1.5 px-3.5 rounded-lg border border-slate-200 font-mono">
+                        PÁGINA {currentPage}
+                      </span>
+                      <button
+                        disabled={detectedWinners.length < itemsLimit}
+                        onClick={() => setCurrentPage(prev => prev + 1)}
+                        className="px-3 py-1.5 text-xs font-bold rounded-lg border bg-white border-slate-200 text-slate-650 hover:bg-slate-50 hover:text-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all cursor-pointer select-none"
+                      >
+                        Próxima →
+                      </button>
+                    </div>
+
+                    <div className="text-[10px] text-slate-450 font-mono font-bold">
+                      Offset corrente: {(currentPage - 1) * itemsLimit}
+                    </div>
+                  </div>
+
+                  {/* Dica de Negócio Amigável do detetive Mercado Livre */}
+                  <div className="bg-slate-50 border border-slate-150 rounded-xl p-4 flex gap-3 items-center mt-4">
+                    <Info className="w-5 h-5 text-cyan-500 flex-shrink-0" />
+                    <p className="text-[11px] text-slate-600 leading-normal font-semibold font-sans">
+                      <strong>💡 Dica do MeliPro:</strong> Cada item acima representa um anúncio ativo e real listado no Mercado Livre Brasil. Fornecedores de sucesso focam em produtos com pontuação (Chance de Lucro) superior a 90%! Combine frete gratuito com valores de reprecificação inteligente para maximizar o seu faturamento.
+                    </p>
+                  </div>
+                </>
+              )}
 
               </div>
             )}
@@ -2559,7 +2654,7 @@ export default function OportunidadesMercado({ isMeliConnected, isMeliOfficial, 
                   <div>
                     <strong>Fidelidade Histórica:</strong> Para examinar o anúncio original vivo no portal do Mercado Livre, use o link 
                     <a 
-                      href={selectedProduct.permalink && selectedProduct.permalink !== "https://www.mercadolivre.com.br" ? selectedProduct.permalink : `https://lista.mercadolivre.com.br/${encodeURIComponent(selectedProduct.title)}`} 
+                      href={selectedProduct.permalink && selectedProduct.permalink !== "https://www.mercadolivre.com.br" ? selectedProduct.permalink : `https://produto.mercadolivre.com.br/MLB-${selectedProduct.id.replace(/[^\d]/g, '')}`} 
                       target="_blank" 
                       rel="noopener noreferrer"
                       className="text-cyan-600 font-bold hover:underline inline-flex items-center gap-0.5 ml-1"
