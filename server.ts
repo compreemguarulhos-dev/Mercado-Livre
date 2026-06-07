@@ -334,7 +334,9 @@ async function startServer() {
         domain_id: `MLB_${(activeSearchCriterion || 'produtos').toUpperCase().replace(/[^A-Z0-9]/g, '_')}`,
         catalog_listing: hash % 6 === 0,
         catalog_product_id: hash % 6 === 0 ? `MLB_CAT_${hash % 4500}` : null,
-        permalink: `https://www.mercadolivre.com.br/${finalTitle.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9\s-]/g, "").trim().replace(/\s+/g, "-").replace(/-+/g, "-")}/p/${finalId}`
+        permalink: hash % 6 === 0 
+          ? `https://www.mercadolivre.com.br/${finalTitle.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9\s-]/g, "").trim().replace(/\s+/g, "-").replace(/-+/g, "-")}/p/MLB_CAT_${hash % 4500}?pdp_filters=item_id:${finalId}`
+          : `https://produto.mercadolivre.com.br/${finalTitle.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9\s-]/g, "").trim().replace(/\s+/g, "-").replace(/-+/g, "-")}/MLB-${finalId.replace(/[^0-9]/g, '')}`
       });
     }
 
@@ -508,7 +510,7 @@ async function startServer() {
         status: "active",
         thumbnail: "https://http2.mlstatic.com/D_NQ_NP_830605-MLA46399086638_062021-O.webp",
         category_id: "MLB1008",
-        permalink: `https://www.mercadolivre.com.br/${selectedTitle.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9\s-]/g, "").trim().replace(/\s+/g, "-").replace(/-+/g, "-")}/p/${cleanedId}`,
+        permalink: `https://produto.mercadolivre.com.br/${selectedTitle.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9\s-]/g, "").trim().replace(/\s+/g, "-").replace(/-+/g, "-")}/MLB-${cleanedId.replace(/[^0-9]/g, '')}`,
         sold_quantity: (hash % 1200) + 5,
         available_quantity: (hash % 85) + 3,
         condition: "new",

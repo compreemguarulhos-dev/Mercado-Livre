@@ -41,16 +41,29 @@ export function getApiUrl(path: string): string {
 }
 
 /**
- * Builds a direct Mercado Livre product URL in the official format requested by the user:
- * https://www.mercadolivre.com.br/{kebab-case-title}/p/{itemId}
+ * Builds a direct Mercado Livre product URL in the official format requested by the user.
+ * 
+ * - If there is a catalogProductId, uses the premium catalog format:
+ *   https://www.mercadolivre.com.br/{kebab-case-title}/p/{catalogProductId}?pdp_filters=item_id:{itemId}
+ * 
+ * - Otherwise, for regular listings, uses:
+ *   https://produto.mercadolivre.com.br/{kebab-case-title}/MLB-{numericalId}
+ * 
+ * - Preserves any valid, pre-existing permalinks to avoid needless overrides.
  */
-export function getMeliProductUrl(title: string, itemId: string, originalPermalink?: string): string {
-  // If the original permalink is already structured as a direct product page on www.mercadolivre.com.br/something/p/...
-  // we can use it to avoid losing any specific query parameters or routing.
-  if (originalPermalink && 
-      originalPermalink.includes("mercadolivre.com.br") && 
-      originalPermalink.includes("/p/") && 
-      !originalPermalink.includes("lista.mercadolivre.com.br")) {
+export function getMeliProductUrl(
+  title: string,
+  itemId: string,
+  originalPermalink?: string,
+  catalogProductId?: string
+): string {
+  // If the original permalink is already structured as a direct product page on Mercado Livre, keep it.
+  if (
+    originalPermalink &&
+    (originalPermalink.includes("produto.mercadolivre.com") ||
+     (originalPermalink.includes("mercadolivre.com.br") && originalPermalink.includes("/p/"))) &&
+    !originalPermalink.includes("lista.mercadolivre.com")
+  ) {
     return originalPermalink;
   }
 
@@ -64,8 +77,16 @@ export function getMeliProductUrl(title: string, itemId: string, originalPermali
     .replace(/\s+/g, "-") // replace multiple consecutive spaces with a single hyphen
     .replace(/-+/g, "-"); // replace multiple consecutive hyphens with a single hyphen
 
-  // Ensure Item ID is clean and capitalized (e.g. MLB2000086176)
-  const cleanId = (itemId || "").toUpperCase().trim();
+  const cleanItemId = (itemId || "").toUpperCase().trim();
+  const numericalId = cleanItemId.replace(/[^0-9]/g, "");
 
-  return `https://www.mercadolivre.com.br/${cleanTitle}/p/${cleanId}`;
+  // If a catalogProductId is present (e.g., MLB47044981), format as catalog product URL
+  if (catalogProductId && catalogProductId.trim() !== "") {
+    const cleanCatalogId = catalogProductId.toUpperCase().trim();
+    return `https://www.mercadolivre.com.br/${cleanTitle}/p/${cleanCatalogId}?pdp_filters=item_id:${cleanItemId}`;
+  }
+
+  // Fallback for standard listings (no catalog version or unknown)
+  // Standard direct URL on produto.mercadolivre.com.br: this is highly reliable and does not trigger search results!
+  return `https://produto.mercadolivre.com.br/${cleanTitle}/MLB-${numericalId}`;
 }

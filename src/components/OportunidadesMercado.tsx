@@ -48,6 +48,7 @@ interface OpportunityProduct {
   isOfficialStore: boolean;
   sellerReputation?: 'green' | 'gold' | 'yellow' | 'red';
   imagesCount: number;
+  catalogProductId?: string;
 }
 
 interface KeywordComparison {
@@ -674,7 +675,8 @@ export default function OportunidadesMercado({ isMeliConnected, isMeliOfficial, 
             brand,
             isOfficialStore,
             sellerReputation,
-            imagesCount
+            imagesCount,
+            catalogProductId: p.catalog_product_id
           };
         });
 
@@ -2574,7 +2576,7 @@ export default function OportunidadesMercado({ isMeliConnected, isMeliOfficial, 
                                     <td className="py-2 px-4 max-w-[280px]">
                                       <div className="flex flex-col text-left">
                                         <a 
-                                          href={getMeliProductUrl(product.title, product.id, product.permalink)}
+                                          href={getMeliProductUrl(product.title, product.id, product.permalink, product.catalogProductId)}
                                           target="_blank"
                                           rel="noopener noreferrer"
                                           onClick={(e) => e.stopPropagation()}
@@ -2679,7 +2681,7 @@ export default function OportunidadesMercado({ isMeliConnected, isMeliOfficial, 
                                     {/* Vendedor */}
                                     <td className="py-2 px-4">
                                       <a 
-                                        href={getMeliProductUrl(product.title, product.id, product.permalink)}
+                                        href={getMeliProductUrl(product.title, product.id, product.permalink, product.catalogProductId)}
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         onClick={(e) => e.stopPropagation()}
@@ -3055,7 +3057,7 @@ export default function OportunidadesMercado({ isMeliConnected, isMeliOfficial, 
         const catName = getProductCategory(selectedProduct.title);
         
         // ML Official URL
-        const mlUrl = getMeliProductUrl(selectedProduct.title, selectedProduct.id, selectedProduct.permalink);
+        const mlUrl = getMeliProductUrl(selectedProduct.title, selectedProduct.id, selectedProduct.permalink, selectedProduct.catalogProductId);
 
         // Ratings & reviews count
         const reviewsCount = Math.round(selectedProduct.salesCount * 0.45 + selectedProduct.rating * 100);

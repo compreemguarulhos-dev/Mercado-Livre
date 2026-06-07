@@ -22,6 +22,7 @@ interface MeliItem {
   demandLevel: 'Alta' | 'Média' | 'Normal';
   score: number; // calculated score out of 100 for opportunities
   permalink: string;
+  catalogProductId?: string;
 }
 
 interface Props {
@@ -95,7 +96,7 @@ export default function InteligenciaMercado({ isMeliConnected, isMeliOfficial, s
     if (isItemId) {
       // Direct Item ID search using GET /items/{Item_id} through our Express server proxy
       const itemId = trimmedQuery.toUpperCase();
-      const url = getApiUrl(`/api/meli/items/${itemId}?attributes=id,title,price,thumbnail,shipping,permalink,sold_quantity,available_quantity,domain_id,condition`);
+      const url = getApiUrl(`/api/meli/items/${itemId}?attributes=id,title,price,thumbnail,shipping,permalink,sold_quantity,available_quantity,domain_id,condition,catalog_product_id`);
       
       const headers: Record<string, string> = {
         "Accept": "application/json"
@@ -125,7 +126,8 @@ export default function InteligenciaMercado({ isMeliConnected, isMeliOfficial, s
               : "GERAL",
             demandLevel: 'Alta',
             score: 95,
-            permalink: getMeliProductUrl(item.title, item.id, item.permalink)
+            permalink: getMeliProductUrl(item.title, item.id, item.permalink, item.catalog_product_id),
+            catalogProductId: item.catalog_product_id
           };
           setResults([mappedObj]);
           setLoading(false);
@@ -195,7 +197,8 @@ export default function InteligenciaMercado({ isMeliConnected, isMeliOfficial, s
               : "GERAL",
             demandLevel: soldCount > 500 ? 'Alta' : soldCount > 80 ? 'Média' : 'Normal',
             score: score,
-            permalink: getMeliProductUrl(item.title, item.id, item.permalink)
+            permalink: getMeliProductUrl(item.title, item.id, item.permalink, item.catalog_product_id),
+            catalogProductId: item.catalog_product_id
           };
         });
 
