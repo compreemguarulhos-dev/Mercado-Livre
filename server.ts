@@ -402,16 +402,49 @@ async function startServer() {
 
   // API Route - Proxy public search endpoint with offline fallback
   app.get("/api/meli/search", async (req, res) => {
-    const { siteId, q, limit, offset, attributes, category, brand, seller } = req.query;
+    const { 
+      siteId, 
+      q, 
+      limit, 
+      offset, 
+      attributes, 
+      category, 
+      brand, 
+      seller,
+      priceMin,
+      priceMax,
+      freeShipping,
+      condition,
+      sort
+    } = req.query;
     const targetSiteId = String(siteId || "MLB");
     const cleanQuery = String(q || '');
 
     try {
       const searchParams = new URLSearchParams();
-      searchParams.append("q", cleanQuery);
+      
+      // Combine query string, brand, and seller into an advanced search query
+      let advancedQuery = cleanQuery;
+      if (brand && String(brand).trim()) {
+        const brandStr = String(brand).trim();
+        if (!advancedQuery.toLowerCase().includes(brandStr.toLowerCase())) {
+          advancedQuery = advancedQuery ? `${advancedQuery} ${brandStr}` : brandStr;
+        }
+      }
+      if (seller && String(seller).trim()) {
+        const sellerStr = String(seller).trim();
+        if (!advancedQuery.toLowerCase().includes(sellerStr.toLowerCase())) {
+          advancedQuery = advancedQuery ? `${advancedQuery} ${sellerStr}` : sellerStr;
+        }
+      }
+
+      searchParams.append("q", advancedQuery);
       if (limit) searchParams.append("limit", String(limit));
       if (offset) searchParams.append("offset", String(offset));
+      
+      // We append attributes only if provided
       if (attributes) searchParams.append("attributes", String(attributes));
+      
       if (category) {
         const categoryStr = String(category).trim();
         const isValidId = /^[a-zA-Z]{3,5}\d+$/.test(categoryStr);
@@ -419,15 +452,39 @@ async function startServer() {
           searchParams.append("category", categoryStr);
         } else {
           // If a text name is passed, we append it to the search keywords to give high success rate
-          if (cleanQuery && !cleanQuery.toLowerCase().includes(categoryStr.toLowerCase())) {
-            searchParams.set("q", `${cleanQuery} ${categoryStr}`);
-          } else if (!cleanQuery) {
+          if (advancedQuery && !advancedQuery.toLowerCase().includes(categoryStr.toLowerCase())) {
+            searchParams.set("q", `${advancedQuery} ${categoryStr}`);
+          } else if (!advancedQuery) {
             searchParams.set("q", categoryStr);
           }
         }
       }
-      if (brand) searchParams.append("brand", String(brand));
-      if (seller) searchParams.append("seller", String(seller));
+
+      // Handle advanced price-range queries natively on the API layer
+      if (priceMin || priceMax) {
+        const min = priceMin ? String(priceMin).trim() : "";
+        const max = priceMax ? String(priceMax).trim() : "";
+        searchParams.append("price", `${min}-${max}`);
+      }
+
+      // Handle raw shipping filter natively
+      if (freeShipping === "true" || freeShipping === "1") {
+        searchParams.append("shipping", "free");
+      }
+
+      // Handle condition filter (new, used)
+      if (condition && (condition === "new" || condition === "used" || condition === "not_specified")) {
+        searchParams.append("condition", String(condition));
+      }
+
+      // Handle official sort parameters
+      if (sort) {
+        if (sort === "cheapest" || sort === "price_asc") {
+          searchParams.append("sort", "price_asc");
+        } else if (sort === "expensive" || sort === "price_desc") {
+          searchParams.append("sort", "price_desc");
+        }
+      }
 
       const url = `https://api.mercadolibre.com/sites/${targetSiteId}/search?${searchParams.toString()}`;
       console.log(`[Proxy Search] Fetching from Mercado Livre: ${url}`);
@@ -439,7 +496,17 @@ async function startServer() {
         headers["Authorization"] = req.headers.authorization as string;
       }
       
-      const response = await fetch(url, { headers });
+      let response = await fetch(url, { headers });
+      
+      // If the request fails (e.g., due to an attributes validation breakdown or temporary API updates),
+      // we attempt an immediate fallback search WITHOUT the strict 'attributes' parameter.
+      if (!response.ok && attributes) {
+        console.warn(`[Proxy Search] First fetch with attributes-filter returned status ${response.status}. Attempting clean retry without attributes...`);
+        const fallbackParams = new URLSearchParams(searchParams);
+        fallbackParams.delete("attributes");
+        const fallbackUrl = `https://api.mercadolibre.com/sites/${targetSiteId}/search?${fallbackParams.toString()}`;
+        response = await fetch(fallbackUrl, { headers });
+      }
       
       if (!response.ok) {
         console.warn(`[Proxy Search] Mercado Livre API returned NOT-OK status: ${response.status}. Falling back to high-fidelity simulated response...`);

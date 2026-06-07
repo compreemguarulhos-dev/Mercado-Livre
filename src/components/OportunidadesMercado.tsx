@@ -303,7 +303,7 @@ export default function OportunidadesMercado({ isMeliConnected, isMeliOfficial, 
 
   const [detectedWinners, setDetectedWinners] = useState<OpportunityProduct[]>([]);
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const [itemsLimit, setItemsLimit] = useState<number>(24);
+  const [itemsLimit, setItemsLimit] = useState<number>(50);
 
   // Reset page size to 1 when filters or query change
   useEffect(() => {
@@ -806,7 +806,7 @@ export default function OportunidadesMercado({ isMeliConnected, isMeliOfficial, 
     const offset = (currentPage - 1) * itemsLimit;
     
     // We trigger the proxy endpoint with dynamic limit and offset, passing the filters so backend can adapt simulated results
-    const url = getApiUrl(`/api/meli/search?siteId=${siteId}&q=${cleanWord}&limit=${itemsLimit}&offset=${offset}&attributes=${attributesStr}&category=${encodeURIComponent(filterCategoryId || filterCategory)}&brand=${encodeURIComponent(marcaQuery)}&seller=${encodeURIComponent(vendedorQuery)}`);
+    const url = getApiUrl(`/api/meli/search?siteId=${siteId}&q=${cleanWord}&limit=${itemsLimit}&offset=${offset}&attributes=${attributesStr}&category=${encodeURIComponent(filterCategoryId || filterCategory)}&brand=${encodeURIComponent(marcaQuery)}&seller=${encodeURIComponent(vendedorQuery)}&priceMin=${encodeURIComponent(precoMin)}&priceMax=${encodeURIComponent(precoMax)}&freeShipping=${envioFreteGratis}`);
 
     const headers: Record<string, string> = {
       "Accept": "application/json"

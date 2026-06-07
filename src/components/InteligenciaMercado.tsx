@@ -40,7 +40,7 @@ export default function InteligenciaMercado({ isMeliConnected, isMeliOfficial, s
   const [priceRange, setPriceRange] = useState<'all' | 'low' | 'mid' | 'high'>('all');
   const [sortBy, setSortBy] = useState<'relevance' | 'cheapest' | 'best_seller'>('relevance');
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsLimit, setItemsLimit] = useState(24);
+  const [itemsLimit, setItemsLimit] = useState(50);
 
   // Collapsible Tree state for nested categories inside filter selector
   const [categories, setCategories] = useState<any[]>([]);
@@ -320,8 +320,29 @@ export default function InteligenciaMercado({ isMeliConnected, isMeliOfficial, s
     const offset = (currentPage - 1) * itemsLimit;
     const attributesStr = "results.id,results.title,results.price,results.thumbnail,results.shipping,results.condition,results.permalink,results.sold_quantity,results.available_quantity,results.domain_id";
     
+    // Construct dynamic parameters for ML API query-level advanced filtering
+    let filterParams = "";
+    if (onlyFreeShipping) {
+      filterParams += "&freeShipping=true";
+    }
+    if (onlyNew) {
+      filterParams += "&condition=new";
+    }
+    if (priceRange === 'low') {
+      filterParams += "&priceMax=204";
+    } else if (priceRange === 'mid') {
+      filterParams += "&priceMin=205&priceMax=1500";
+    } else if (priceRange === 'high') {
+      filterParams += "&priceMin=1501";
+    }
+    if (sortBy === 'cheapest') {
+      filterParams += "&sort=price_asc";
+    } else if (sortBy === 'expensive') {
+      filterParams += "&sort=price_desc";
+    }
+
     // Official public API endpoint routed via securely pre-configured proxy to avoid CORS/network issues
-    const url = getApiUrl(`/api/meli/search?siteId=${siteId}&q=${cleanQuery}&limit=${itemsLimit}&offset=${offset}&attributes=${attributesStr}${(filterCategoryId || filterCategory) ? `&category=${encodeURIComponent(filterCategoryId || filterCategory)}` : ''}`);
+    const url = getApiUrl(`/api/meli/search?siteId=${siteId}&q=${cleanQuery}&limit=${itemsLimit}&offset=${offset}&attributes=${attributesStr}${(filterCategoryId || filterCategory) ? `&category=${encodeURIComponent(filterCategoryId || filterCategory)}` : ''}${filterParams}`);
 
     const headers: Record<string, string> = {
       "Accept": "application/json"
