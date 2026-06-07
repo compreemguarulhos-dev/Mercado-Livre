@@ -5,7 +5,8 @@ import {
   DollarSign, Landmark, ArrowUpDown, ChevronRight, Zap, Info, ShieldAlert,
   ExternalLink, X, Percent, BarChart3, Copy
 } from 'lucide-react';
-import { getApiUrl } from '../utils';
+import { getApiUrl, getMeliProductUrl } from '../utils';
+import MeliAPIDiagnosticsPanel from './MeliAPIDiagnosticsPanel';
 
 // Friendly Meli Item structure focusing on client outcomes
 interface MeliItem {
@@ -47,92 +48,6 @@ export default function InteligenciaMercado({ isMeliConnected, isMeliOfficial, s
 
   // Product detail analytic modal and toast notification states
   const [selectedProduct, setSelectedProduct] = useState<MeliItem | null>(null);
-  
-  // Real item API details and description
-  const [realItemDetails, setRealItemDetails] = useState<any | null>(null);
-  const [itemDescription, setItemDescription] = useState<string>('');
-  const [loadingRealDetails, setLoadingRealDetails] = useState<boolean>(false);
-  const [selectedSubImage, setSelectedSubImage] = useState<string>('');
-
-  useEffect(() => {
-    if (!selectedProduct) {
-      setRealItemDetails(null);
-      setItemDescription('');
-      setSelectedSubImage('');
-      return;
-    }
-
-    setLoadingRealDetails(true);
-    const itemId = selectedProduct.id;
-    
-    // Fetch main item details with graceful fallback for simulation products
-    fetch(`https://api.mercadolibre.com/items/${itemId}`)
-      .then(res => {
-        if (!res.ok) {
-          // Softly fallback for mock/simulation IDs or non-existent items
-          const fallbackData = {
-            id: selectedProduct.id,
-            title: selectedProduct.title,
-            price: selectedProduct.price,
-            thumbnail: selectedProduct.thumbnail,
-            status: "active",
-            available_quantity: selectedProduct.availableQuantity,
-            sold_quantity: selectedProduct.soldQuantity,
-            permalink: selectedProduct.permalink,
-            pictures: [{ url: selectedProduct.thumbnail }]
-          };
-          setRealItemDetails(fallbackData);
-          setSelectedSubImage(selectedProduct.thumbnail);
-          setItemDescription("Este anúncio é de simulação ou as informações detalhadas em tempo real estão sendo otimizadas de forma offline no momento.");
-          return null;
-        }
-        return res.json();
-      })
-      .then(data => {
-        if (!data) return;
-        setRealItemDetails(data);
-        if (data.pictures && data.pictures.length > 0) {
-          // Set primary image from the list of pictures
-          setSelectedSubImage(data.pictures[0].url || data.thumbnail);
-        } else {
-          setSelectedSubImage(data.thumbnail || selectedProduct.thumbnail);
-        }
-        
-        // Fetch description text
-        return fetch(`https://api.mercadolibre.com/items/${itemId}/description`)
-          .then(resDesc => resDesc.ok ? resDesc.json() : null)
-          .then(descData => {
-            if (descData && descData.plain_text) {
-              setItemDescription(descData.plain_text);
-            } else if (descData && descData.text) {
-              setItemDescription(descData.text);
-            } else {
-              setItemDescription("Descrição oficial formatada indisponível via consulta pública direta.");
-            }
-          });
-      })
-      .catch(err => {
-        // Soft fallback for request blocks or network/CORS issues
-        const fallbackData = {
-          id: selectedProduct.id,
-          title: selectedProduct.title,
-          price: selectedProduct.price,
-          thumbnail: selectedProduct.thumbnail,
-          status: "active",
-          available_quantity: selectedProduct.availableQuantity,
-          sold_quantity: selectedProduct.soldQuantity,
-          permalink: selectedProduct.permalink,
-          pictures: [{ url: selectedProduct.thumbnail }]
-        };
-        setRealItemDetails(fallbackData);
-        setItemDescription("Este anúncio é de simulação ou as informações detalhadas em tempo real estão sendo otimizadas de forma offline no momento.");
-        setSelectedSubImage(selectedProduct.thumbnail);
-      })
-      .finally(() => {
-        setLoadingRealDetails(false);
-      });
-  }, [selectedProduct]);
-
   const [supplierCost, setSupplierCost] = useState<number>(0);
   const [taxPercent, setTaxPercent] = useState<number>(6); // 6% default
   const [mlFeePercent, setMlFeePercent] = useState<number>(11.5); // 11.5% Clássico default
@@ -210,9 +125,7 @@ export default function InteligenciaMercado({ isMeliConnected, isMeliOfficial, s
               : "GERAL",
             demandLevel: 'Alta',
             score: 95,
-            permalink: item.permalink && !item.permalink.includes("lista.mercadolivre.com.br") 
-              ? item.permalink 
-              : `https://produto.mercadolivre.com.br/MLB-${item.id.replace(/[^\d]/g, '')}`
+            permalink: getMeliProductUrl(item.title, item.id, item.permalink)
           };
           setResults([mappedObj]);
           setLoading(false);
@@ -282,9 +195,7 @@ export default function InteligenciaMercado({ isMeliConnected, isMeliOfficial, s
               : "GERAL",
             demandLevel: soldCount > 500 ? 'Alta' : soldCount > 80 ? 'Média' : 'Normal',
             score: score,
-            permalink: item.permalink && !item.permalink.includes("lista.mercadolivre.com.br")
-              ? item.permalink
-              : `https://produto.mercadolivre.com.br/MLB-${item.id.replace(/[^\d]/g, '')}`
+            permalink: getMeliProductUrl(item.title, item.id, item.permalink)
           };
         });
 
@@ -563,6 +474,17 @@ export default function InteligenciaMercado({ isMeliConnected, isMeliOfficial, s
             </div>
           </div>
 
+          <MeliAPIDiagnosticsPanel 
+            searchQuery={searchQuery}
+            isMeliConnected={isMeliConnected}
+            sellerNickname={sellerNickname}
+            isMeliOfficial={isMeliOfficial}
+            itemsLimit={itemsLimit}
+            currentPage={currentPage}
+            isOpportunityView={false}
+            activeFiltersCount={(onlyNew !== 'all' ? 1 : 0) + (onlyFreeShipping ? 1 : 0) + (priceRange !== 'all' ? 1 : 0)}
+          />
+
         </div>
 
         {/* COLUNA DIREITA (Lista de Resultados Incríveis) */}
@@ -742,7 +664,7 @@ export default function InteligenciaMercado({ isMeliConnected, isMeliOfficial, s
                     {/* Botões integrados de ação */}
                     <div className="pt-3 border-t border-dashed border-slate-100 mt-3 flex flex-wrap gap-2 items-center justify-between font-sans">
                       <a 
-                        href={item.permalink && !item.permalink.includes("lista.mercadolivre.com.br") && item.permalink !== "https://www.mercadolivre.com.br" ? item.permalink : `https://produto.mercadolivre.com.br/MLB-${item.id.replace(/[^\d]/g, '')}`}
+                        href={item.permalink}
                         target="_blank"
                         rel="noopener noreferrer"
                         onClick={(e) => e.stopPropagation()}
@@ -828,8 +750,7 @@ export default function InteligenciaMercado({ isMeliConnected, isMeliOfficial, s
             
             {/* Lado Esquerdo - Visual do Anúncio */}
             <div className="md:w-2/5 bg-slate-50 p-6 flex flex-col justify-between border-b md:border-b-0 md:border-r border-slate-200 overflow-y-auto">
-              <div className="space-y-4 font-sans">
-                
+              <div className="space-y-4">
                 <div className="flex justify-between items-center">
                   <span className="text-[10px] font-bold text-indigo-650 bg-indigo-50 px-2 py-0.5 rounded-full uppercase tracking-wider">Visualização de Inteligência</span>
                   <div className="flex gap-1.5 flex-wrap">
@@ -841,124 +762,57 @@ export default function InteligenciaMercado({ isMeliConnected, isMeliOfficial, s
                   </div>
                 </div>
 
-                {/* Imagem do anúncio exata com Galeria de Fotos Reais */}
-                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex flex-col items-center justify-center relative">
-                  <div className="h-56 w-full flex items-center justify-center relative">
-                    <img 
-                      src={selectedSubImage || selectedProduct.thumbnail} 
-                      alt={selectedProduct.title} 
-                      className="max-h-full max-w-full object-contain rounded-lg p-1"
-                      referrerPolicy="no-referrer"
-                    />
-                    {selectedProduct.freeShipping && (
-                      <span className="absolute bottom-1 right-1 bg-emerald-600 text-white text-[8px] font-black uppercase px-1.5 py-0.5 rounded shadow-xs">
-                        🚚 FRETE GRÁTIS
-                      </span>
-                    )}
-                    {realItemDetails?.status && (
-                      <span className={`absolute top-1 left-1 text-[8px] font-black uppercase px-2 py-0.5 rounded shadow-xs ${
-                        realItemDetails.status === 'active' ? 'bg-emerald-600/95 text-white' : 'bg-rose-600/90 text-white'
-                      }`}>
-                        {realItemDetails.status === 'active' ? '● Ativo' : `● ${realItemDetails.status}`}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Galeria de Fotos Adicionais da API Real */}
-                  {realItemDetails?.pictures && realItemDetails.pictures.length > 1 && (
-                    <div className="flex gap-1.5 overflow-x-auto w-full mt-3 py-1 justify-start scrollbar-none max-w-full">
-                      {realItemDetails.pictures.slice(0, 6).map((pic: any, pIdx: number) => (
-                        <button
-                          key={pIdx}
-                          onMouseEnter={() => setSelectedSubImage(pic.url || pic.secure_url)}
-                          onClick={() => setSelectedSubImage(pic.url || pic.secure_url)}
-                          className={`w-10 h-10 rounded border overflow-hidden flex-shrink-0 bg-white p-0.5 transition-all ${
-                            (selectedSubImage || selectedProduct.thumbnail) === (pic.url || pic.secure_url) ? 'border-indigo-600 ring-1 ring-indigo-600 scale-102' : 'border-slate-200 hover:border-slate-350'
-                          }`}
-                        >
-                          <img src={pic.url || pic.secure_url} alt={`foto-${pIdx}`} className="w-full h-full object-contain" referrerPolicy="no-referrer" />
-                        </button>
-                      ))}
-                    </div>
+                {/* Imagem do anúncio exata */}
+                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex items-center justify-center h-56 relative">
+                  <img 
+                    src={selectedProduct.thumbnail} 
+                    alt={selectedProduct.title} 
+                    className="max-h-full max-w-full object-contain rounded-lg p-2"
+                    referrerPolicy="no-referrer"
+                  />
+                  {selectedProduct.freeShipping && (
+                    <span className="absolute bottom-3 left-3 bg-emerald-600 text-white text-[9px] font-black uppercase px-2 py-1 rounded shadow-xs flex items-center gap-1">
+                      🚚 FRETE GRÁTIS!
+                    </span>
                   )}
                 </div>
 
                 <div className="space-y-2">
-                  <h3 className="text-sm font-bold text-slate-800 leading-snug font-sans">{realItemDetails?.title || selectedProduct.title}</h3>
-                  <div className="flex flex-wrap items-center gap-1.5">
+                  <h3 className="text-sm font-bold text-slate-800 leading-snug font-sans">{selectedProduct.title}</h3>
+                  <div className="flex flex-wrap items-center gap-2">
                     <span className="text-[9px] font-mono font-bold text-slate-550 bg-slate-200/60 p-0.5 px-2 rounded">
                       ID: {selectedProduct.id}
                     </span>
                     <span className="text-[9px] font-bold text-indigo-700 bg-indigo-50 p-0.5 px-2 rounded uppercase font-sans">
                       {selectedProduct.categoryName}
                     </span>
-                    {realItemDetails?.warranty && (
-                      <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 p-0.5 px-2 rounded uppercase font-sans">
-                        ✓ {realItemDetails.warranty.slice(0, 20)}
-                      </span>
-                    )}
                   </div>
                 </div>
 
-                {/* Resumo Rápido e Detalhes da API */}
+                {/* Resumo Rápido */}
                 <div className="bg-white border border-slate-200 rounded-xl p-3.5 space-y-2 text-xs font-medium font-sans">
                   <div className="flex justify-between">
-                    <span className="text-slate-400">Preço Oficial (API):</span>
-                    <span className="text-indigo-600 font-extrabold font-mono">
-                      {getCurrencySymbol()} {(realItemDetails?.price || selectedProduct.price).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">Demanda Estimada:</span>
-                    <span className={`font-bold ${selectedProduct.demandLevel === 'Alta' ? 'text-rose-600' : 'text-amber-600'}`}>{selectedProduct.demandLevel === 'Alta' ? 'Alta 🔥 (Recomendado)' : 'Forte/Média 📈'}</span>
+                    <span className="text-slate-400">Demanda Meli:</span>
+                    <span className={`font-bold ${selectedProduct.demandLevel === 'Alta' ? 'text-rose-600' : 'text-amber-600'}`}>{selectedProduct.demandLevel === 'Alta' ? 'Crítica/Alta 🔥' : 'Forte/Média 📈'}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-400">Vendas estimadas:</span>
-                    <span className="text-slate-800 font-bold">+{realItemDetails?.sold_quantity || selectedProduct.soldQuantity} unidades</span>
+                    <span className="text-slate-800 font-bold">+{selectedProduct.soldQuantity} unidades</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-400">Estoque Meli:</span>
-                    <span className="text-emerald-600 font-bold">{realItemDetails?.available_quantity !== undefined ? realItemDetails.available_quantity : selectedProduct.availableQuantity} unidades</span>
+                    <span className="text-emerald-600 font-bold">{selectedProduct.availableQuantity} unidades</span>
                   </div>
                   <div className="flex justify-between border-t border-slate-100 pt-2 font-semibold text-slate-700">
-                    <span className="text-slate-600">Pontuação de Nicho:</span>
+                    <span className="text-slate-600">Chance de Lucro:</span>
                     <span className="text-indigo-600">{selectedProduct.score}% (Excelente)</span>
                   </div>
                 </div>
-
-                {/* Descrição em Tempo Real do Anúncio (Meli /items API) */}
-                <div className="bg-white border border-slate-200 rounded-xl p-3.5 space-y-2 text-xs font-medium font-sans">
-                  <span className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest block border-b border-slate-100 pb-1.5">📝 Descrição Comercial Real</span>
-                  {loadingRealDetails ? (
-                    <div className="py-4 text-center text-slate-400 text-[10px] animate-pulse">Carregando descrição ao vivo do Mercado Livre...</div>
-                  ) : itemDescription ? (
-                    <div className="max-h-24 overflow-y-auto text-[10px] text-slate-650 font-sans leading-relaxed whitespace-pre-wrap pr-1 select-text scrollbar-thin">
-                      {itemDescription}
-                    </div>
-                  ) : (
-                    <div className="text-[10px] text-slate-400 italic">Descrição complementar do produto não encontrada.</div>
-                  )}
-                </div>
-
-                {/* Atributos Técnicos do Produto se disponíveis */}
-                {realItemDetails?.attributes && realItemDetails.attributes.some((attr: any) => attr.value_name) && (
-                  <div className="bg-white border border-slate-200 rounded-xl p-3.5 space-y-2 text-xs font-medium font-sans block">
-                    <span className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest block border-b border-slate-100 pb-1.5">⚙️ Especificações Técnicas</span>
-                    <div className="grid grid-cols-2 gap-2 max-h-24 overflow-y-auto pr-1 text-[9px] font-sans scrollbar-thin">
-                      {realItemDetails.attributes.filter((attr: any) => attr.value_name && attr.name).slice(0, 10).map((attr: any, aIdx: number) => (
-                        <div key={aIdx} className="border-b border-slate-50 pb-1">
-                          <span className="text-slate-400 block pb-0.5">{attr.name}</span>
-                          <span className="text-slate-700 font-bold truncate block" title={attr.value_name}>{attr.value_name}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </div>
 
               {/* Linha informativa MeliPro */}
               <div className="text-[10px] text-slate-400 mt-4 leading-normal font-medium font-sans">
-                Para manter a consistência de tela da inteligência, estas informações foram carregadas diretamente da API oficial de anúncios.
+                Para manter a consistência de tela da inteligência, esta é a imagem guardada e cacheada pela API oficial do produto.
               </div>
             </div>
 
@@ -1153,7 +1007,7 @@ export default function InteligenciaMercado({ isMeliConnected, isMeliOfficial, s
                   <div>
                     <strong>Link do Anúncio Original:</strong> Para inspecionar no ambiente de compras original, você pode 
                     <a 
-                      href={realItemDetails?.permalink || (selectedProduct.permalink && !selectedProduct.permalink.includes("lista.mercadolivre.com.br") ? selectedProduct.permalink : `https://produto.mercadolivre.com.br/MLB-${selectedProduct.id.replace(/[^\d]/g, '')}`)} 
+                      href={selectedProduct.permalink}
                       target="_blank" 
                       rel="noopener noreferrer"
                       className="text-indigo-600 font-bold hover:underline inline-flex items-center gap-0.5 ml-1"
