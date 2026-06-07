@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Sparkles, Search, TrendingUp, Filter, Award, 
   Trash2, HelpCircle, Star, ShieldAlert, Lock,
-  MapPin, CheckCircle2, ChevronRight, BarChart2,
+  MapPin, CheckCircle2, ChevronRight, ChevronDown, BarChart2,
   Percent, ArrowUpDown, RefreshCw, Layers, Users, Zap, AlertCircle,
-  X, Copy, ExternalLink, Info, Download, MoreVertical
+  X, Copy, ExternalLink, Info, Download, MoreVertical, FolderOpen, ArrowLeft, Home
 } from 'lucide-react';
 import { getApiUrl, getMeliProductUrl } from '../utils';
 import MeliAPIDiagnosticsPanel from './MeliAPIDiagnosticsPanel';
@@ -85,12 +85,181 @@ export default function OportunidadesMercado({ isMeliConnected, isMeliOfficial, 
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [categoryTree, setCategoryTree] = useState<SubcategoryDetail[]>([]);
   const [subLoading, setSubLoading] = useState(false);
+  const [categoryPath, setCategoryPath] = useState<{ id: string; name: string }[]>([]);
 
   // States for ZoomPulse Filters
   const [winnerSearchKeyword, setWinnerSearchKeyword] = useState<string>('');
   
   // 1. "produto" Card Panel
   const [filterCategory, setFilterCategory] = useState<string>('');
+  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
+  const categoryDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Collapsible Tree state for nested categories inside filter selector (Tab 2)
+  const [dropdownCategories, setDropdownCategories] = useState<any[]>([]);
+  const [expandedNodes, setExpandedNodes] = useState<Record<string, boolean>>({});
+  const [loadedNodes, setLoadedNodes] = useState<Record<string, any[]>>({});
+  const [loadingNodes, setLoadingNodes] = useState<Record<string, boolean>>({});
+
+  const toggleNodeExpand = (cat: any, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const nodeId = cat.id;
+    if (expandedNodes[nodeId]) {
+      setExpandedNodes(prev => ({ ...prev, [nodeId]: false }));
+    } else {
+      if (!loadedNodes[nodeId]) {
+        setLoadingNodes(prev => ({ ...prev, [nodeId]: true }));
+        const url = getApiUrl(`/api/meli/categories/${nodeId}`);
+        fetch(url)
+          .then(res => {
+            if (!res.ok) throw new Error("Erro de subcategorias");
+            return res.json();
+          })
+          .then(data => {
+            const subList = data.children_categories || [];
+            if (subList.length > 0) {
+              setLoadedNodes(prev => ({ ...prev, [nodeId]: subList }));
+              setExpandedNodes(prev => ({ ...prev, [nodeId]: true }));
+            } else {
+              setFilterCategory(cat.name);
+              setShowCategoryDropdown(false);
+            }
+          })
+          .catch(err => {
+            console.warn("Could not load subcategories in tree:", err);
+            const fallbackList = [
+              { id: `${nodeId}01`, name: `${cat.name} Premium` },
+              { id: `${nodeId}02`, name: `Acessórios de ${cat.name}` },
+              { id: `${nodeId}03`, name: `Opcionais de ${cat.name}` }
+            ];
+            setLoadedNodes(prev => ({ ...prev, [nodeId]: fallbackList }));
+            setExpandedNodes(prev => ({ ...prev, [nodeId]: true }));
+          })
+          .finally(() => {
+            setLoadingNodes(prev => ({ ...prev, [nodeId]: false }));
+          });
+      } else {
+        setExpandedNodes(prev => ({ ...prev, [nodeId]: true }));
+      }
+    }
+  };
+
+  const handleResetToDropdownRootCategories = () => {
+    const siteId = 'MLB';
+    const url = getApiUrl(`/api/meli/categories?siteId=${siteId}`);
+    fetch(url)
+      .then(res => {
+        if (!res.ok) throw new Error("Erro reset");
+        return res.json();
+      })
+      .then((data: any[]) => {
+        if (Array.isArray(data)) {
+          setDropdownCategories(data);
+          setExpandedNodes({});
+          setLoadedNodes({});
+        }
+      })
+      .catch(() => {
+        setDropdownCategories([
+          { id: "MLB1051", name: "Celulares e Telefones" },
+          { id: "MLB1648", name: "Informática" },
+          { id: "MLB1000", name: "Eletrônicos, Áudio e Vídeo" },
+          { id: "MLB1246", name: "Beleza e Cuidado Pessoal" },
+          { id: "MLB1430", name: "Calçados, Roupas e Bolsas" },
+          { id: "MLB1144", name: "Games" },
+          { id: "MLB5672", name: "Acessórios para Veículos" },
+          { id: "MLB1071", name: "Câmeras e Acessórios" },
+          { id: "MLB1574", name: "Casa, Móveis e Decoração" },
+          { id: "MLB1367", name: "Antiguidades e Coleções" },
+          { id: "MLB3025", name: "Livros, Revistas e Comics" }
+        ]);
+        setExpandedNodes({});
+        setLoadedNodes({});
+      });
+  };
+
+  useEffect(() => {
+    handleResetToDropdownRootCategories();
+  }, [selectedCountry]);
+
+  // Recursive renderer for category tree nodes inside filter select
+  const renderDropdownCategoryTreeNodes = (nodes: any[], depth = 0): React.ReactNode => {
+    return nodes.map((cat) => {
+      const isExpanded = !!expandedNodes[cat.id];
+      const isLoading = !!loadingNodes[cat.id];
+      const children = loadedNodes[cat.id] || [];
+      const isSelected = filterCategory.toLowerCase() === cat.name.toLowerCase();
+
+      return (
+        <div key={cat.id} className="select-none font-sans">
+          <div 
+            style={{ paddingLeft: `${depth * 12}px` }}
+            className={`group/item w-full flex items-center justify-between py-1 px-1 rounded-lg transition-all border border-transparent ${
+              isSelected
+                ? 'bg-cyan-50/70 border border-cyan-100/70 shadow-3xs'
+                : 'hover:bg-slate-50'
+            }`}
+          >
+            {/* Left Expansion Caret (triangle) + Select Category Name */}
+            <div className="flex items-center gap-1 flex-1 min-w-0">
+              <button
+                type="button"
+                onClick={(e) => toggleNodeExpand(cat, e)}
+                className="w-4 h-4 hover:bg-slate-200/50 rounded text-slate-400 hover:text-slate-700 flex items-center justify-center transition-transform shrink-0"
+              >
+                {isLoading ? (
+                  <RefreshCw className="w-2.5 h-2.5 animate-spin text-cyan-600" />
+                ) : isExpanded ? (
+                  <ChevronDown className="w-3 h-3 text-slate-600" />
+                ) : (
+                  <ChevronRight className="w-3 h-3 text-slate-450 group-hover/item:text-slate-650" />
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setFilterCategory(cat.name);
+                  setShowCategoryDropdown(false);
+                }}
+                className={`flex-1 text-left py-0.5 text-xs font-semibold cursor-pointer truncate ${
+                  isSelected
+                    ? 'text-cyan-950 font-black'
+                    : 'text-slate-600 group-hover/item:text-slate-900'
+                }`}
+              >
+                {cat.name}
+              </button>
+            </div>
+
+            {/* Optional ID tag to the right */}
+            <span className="text-[7.5px] font-mono font-bold text-slate-400 bg-slate-100/80 px-1 py-0.5 rounded border border-slate-200/40 select-none mr-1 opacity-70 group-hover/item:opacity-100 shrink-0">
+              {cat.id}
+            </span>
+          </div>
+
+          {/* Render children subcategories recursively with nested indentation line */}
+          {isExpanded && children.length > 0 && (
+            <div className="mt-0.5 border-l border-slate-200/60 ml-2">
+              {renderDropdownCategoryTreeNodes(children, depth + 1)}
+            </div>
+          )}
+        </div>
+      );
+    });
+  };
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (categoryDropdownRef.current && !categoryDropdownRef.current.contains(event.target as Node)) {
+        setShowCategoryDropdown(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
   const [envioFull, setEnvioFull] = useState<boolean>(false);
   const [envioFreteGratis, setEnvioFreteGratis] = useState<boolean>(false);
   const [envioInternacional, setEnvioInternacional] = useState<boolean>(false);
@@ -409,9 +578,10 @@ export default function OportunidadesMercado({ isMeliConnected, isMeliOfficial, 
       })
       .then((data: any[]) => {
         if (Array.isArray(data)) {
-          setCategories(data.slice(0, 18)); // take top 18 root categories
+          setCategories(data); // take all root categories
           if (data.length > 0) {
             setSelectedCategory(data[0].id);
+            setCategoryPath([{ id: data[0].id, name: data[0].name }]);
           }
         }
         setLoading(false);
@@ -434,6 +604,7 @@ export default function OportunidadesMercado({ isMeliConnected, isMeliOfficial, 
         ];
         setCategories(localFallback);
         setSelectedCategory(localFallback[0].id);
+        setCategoryPath([{ id: localFallback[0].id, name: localFallback[0].name }]);
         setLoading(false);
       });
   }, [selectedCountry]);
@@ -1571,30 +1742,95 @@ export default function OportunidadesMercado({ isMeliConnected, isMeliOfficial, 
               {/* Category Picker Column */}
               <div className="lg:col-span-4 space-y-3">
                 <label className="text-[10px] uppercase font-mono font-bold text-slate-500 block">Selecione uma Categoria Geral:</label>
-                <div className="space-y-1.5 max-h-[460px] overflow-y-auto border border-slate-200 rounded-lg p-2 bg-slate-50/50">
-                  {categories.map((cat) => (
-                    <button
-                      key={cat.id}
-                      onClick={() => setSelectedCategory(cat.id)}
-                      className={`w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold border transition-all flex items-center justify-between cursor-pointer ${
-                        selectedCategory === cat.id 
-                          ? 'bg-cyan-50 border-cyan-200 text-cyan-950 font-bold shadow-2xs' 
-                          : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-100'
-                      }`}
-                    >
-                      <span className="truncate">{cat.name}</span>
-                      <ChevronRight className={`w-3.5 h-3.5 ${selectedCategory === cat.id ? 'text-cyan-600' : 'text-slate-400'}`} />
-                    </button>
-                  ))}
+                <div className="space-y-1.5 max-h-[500px] overflow-y-auto border border-slate-200 rounded-lg p-2 bg-slate-50/50">
+                  {categories.map((cat) => {
+                    const isParentRoot = categoryPath[0]?.id === cat.id;
+                    return (
+                      <button
+                        key={cat.id}
+                        type="button"
+                        onClick={() => {
+                          setSelectedCategory(cat.id);
+                          setCategoryPath([{ id: cat.id, name: cat.name }]);
+                        }}
+                        className={`w-full text-left px-3 py-2.5 rounded-lg text-xs font-semibold border transition-all flex items-center justify-between cursor-pointer ${
+                          isParentRoot 
+                            ? 'bg-cyan-50 border-cyan-200 text-cyan-950 font-bold shadow-2xs' 
+                            : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-100'
+                        }`}
+                      >
+                        <span className="truncate">{cat.name}</span>
+                        <ChevronRight className={`w-3.5 h-3.5 ${isParentRoot ? 'text-cyan-600' : 'text-slate-400'}`} />
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
               {/* Subcategories Analyzed List */}
               <div className="lg:col-span-8 space-y-4">
+                
+                {/* 🧭 Dynamic Breadcrumbs Navigator */}
+                <div className="bg-slate-50 border border-slate-250 p-3 rounded-xl flex flex-wrap items-center gap-2 text-xs text-slate-600 font-sans shadow-2xs">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (categories.length > 0) {
+                        const root = categories[0];
+                        setSelectedCategory(root.id);
+                        setCategoryPath([{ id: root.id, name: root.name }]);
+                      }
+                    }}
+                    className="p-1 px-2 hover:bg-slate-200 rounded text-slate-500 font-bold flex items-center gap-1 transition-colors hover:text-slate-900"
+                  >
+                    <Home className="w-3.5 h-3.5" />
+                    <span>Início</span>
+                  </button>
+
+                  {categoryPath.map((segment, index) => (
+                    <React.Fragment key={segment.id}>
+                      <ChevronRight className="w-3 h-3 text-slate-400 flex-shrink-0" />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedCategory(segment.id);
+                          setCategoryPath(prev => prev.slice(0, index + 1));
+                        }}
+                        className={`p-1 px-2 rounded font-bold transition-all flex items-center gap-1 text-[11px] ${
+                          index === categoryPath.length - 1
+                            ? 'bg-cyan-500 text-slate-950 font-extrabold shadow-sm'
+                            : 'hover:bg-slate-200 text-slate-700 hover:text-slate-900'
+                        }`}
+                      >
+                        <span>{segment.name}</span>
+                        <span className="text-[9px] font-mono opacity-50">({segment.id})</span>
+                      </button>
+                    </React.Fragment>
+                  ))}
+
+                  {categoryPath.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const newPath = categoryPath.slice(0, -1);
+                        const parentItem = newPath[newPath.length - 1];
+                        setSelectedCategory(parentItem.id);
+                        setCategoryPath(newPath);
+                      }}
+                      className="ml-auto p-1 px-2 hover:bg-slate-200 rounded text-indigo-600 font-bold flex items-center gap-1 transition-colors"
+                    >
+                      <ArrowLeft className="w-3.5 h-3.5" />
+                      <span>Voltar Nível</span>
+                    </button>
+                  )}
+                </div>
+
                 <div className="flex justify-between items-center pb-2 border-b border-rose-100/10">
-                  <span className="text-[10px] uppercase font-mono font-bold text-slate-500">Subcategorias Oportunísticas para Exploração profunda:</span>
+                  <span className="text-[10px] uppercase font-mono font-bold text-slate-500">
+                    {categoryPath.length > 1 ? `Subcategorias de nível ${categoryPath.length}` : 'Subcategorias Oportunísticas para Exploração'}:
+                  </span>
                   <span className="text-xs bg-slate-100 text-slate-500 font-mono font-bold px-2 py-0.5 rounded-md">
-                    Total: {categoryTree.length} analisadas
+                    Total: {categoryTree.length} encontradas
                   </span>
                 </div>
 
@@ -1602,6 +1838,22 @@ export default function OportunidadesMercado({ isMeliConnected, isMeliOfficial, 
                   <div className="flex flex-col items-center justify-center py-20 gap-3">
                     <RefreshCw className="w-8 h-8 text-cyan-600 animate-spin" />
                     <span className="text-xs text-slate-400 font-semibold font-mono">Processando e computando matriz de Monopolização da categoria...</span>
+                  </div>
+                ) : categoryTree.length === 0 ? (
+                  <div className="bg-cyan-50/40 border border-dashed border-cyan-200/80 rounded-2xl p-10 text-center space-y-4 font-sans">
+                    <CheckCircle2 className="w-10 h-10 text-cyan-600 mx-auto" />
+                    <div>
+                      <h4 className="font-extrabold text-slate-800 text-sm">Categoria Final Alcançada!</h4>
+                      <p className="text-xs text-slate-500 max-w-md mx-auto mt-1 leading-relaxed">
+                        A categoria <strong>{categoryPath[categoryPath.length - 1]?.name} ({selectedCategory})</strong> é uma categoria folha. Não existem mais subcategorias abaixo dela na árvore oficial do Mercado Livre.
+                      </p>
+                    </div>
+                    <button 
+                      onClick={() => handleApplyTrendKeyword(categoryPath[categoryPath.length - 1]?.name || '')}
+                      className="bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-black px-5 py-2.5 rounded-xl text-xs uppercase shadow-md transition-all cursor-pointer inline-flex items-center gap-1.5"
+                    >
+                      Analisar Anúncios desta Categoria ⚡
+                    </button>
                   </div>
                 ) : (
                   <div className="space-y-3">
@@ -1616,17 +1868,18 @@ export default function OportunidadesMercado({ isMeliConnected, isMeliOfficial, 
                             <span className="text-[10px] text-slate-400 font-mono">({sub.id})</span>
                           </div>
 
-                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-1 font-mono text-[10px] text-slate-500">
-                            <div>Monopolização: <strong className={sub.monopolyLevel === 'Baixo' ? 'text-emerald-600' : sub.monopolyLevel === 'Médio' ? 'text-amber-600' : 'text-rose-600'}>{sub.monopolyLevel}</strong></div>
-                            <div>Vendedores com Medalha: <strong className="text-slate-700">{sub.medalSellersPercent}%</strong></div>
-                            <div>Faturamento Médio Est.: <strong className="text-slate-800">{getCurrencySymbol()} {sub.avgRevenue?.toLocaleString('pt-BR')}</strong></div>
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-2 font-mono text-[10px] text-slate-500 pt-1">
+                            <div>Monopolização (Gini): <strong className={sub.monopolyLevel === 'Baixo' ? 'text-emerald-600' : sub.monopolyLevel === 'Médio' ? 'text-amber-600' : 'text-rose-600'}>{sub.monopolyLevel}</strong></div>
+                            <div>Sellers s/ Medalha (Barreira Baixa): <strong className="text-emerald-600 font-extrabold">{100 - sub.medalSellersPercent}% dos sellers</strong></div>
+                            <div>Est. Sellers c/ Medalha: <strong className="text-slate-705">{sub.medalSellersPercent}%</strong></div>
+                            <div>Faturamento Mês Estimado: <strong className="text-slate-800">{getCurrencySymbol()} {sub.avgRevenue?.toLocaleString('pt-BR')}</strong></div>
                           </div>
                         </div>
 
                         {/* Opportunity Score Indicator */}
-                        <div className="flex items-center gap-3.5 self-end md:self-auto font-mono">
-                          <div className="text-right">
-                            <span className="text-[9px] text-slate-400 block uppercase font-bold">Grau de Oportunidade</span>
+                        <div className="flex items-center gap-2 self-end md:self-auto font-mono flex-wrap md:flex-nowrap">
+                          <div className="text-right mr-2">
+                            <span className="text-[9px] text-slate-400 block uppercase font-bold">Oportunidade</span>
                             <span className={`text-base font-black ${
                               (sub.opportunityIndex || 0) >= 80 ? 'text-emerald-600' : (sub.opportunityIndex || 0) >= 60 ? 'text-amber-500' : 'text-rose-500'
                             }`}>
@@ -1634,11 +1887,24 @@ export default function OportunidadesMercado({ isMeliConnected, isMeliOfficial, 
                             </span>
                           </div>
 
+                          {/* Action 1: Drill Down deeper */}
+                          <button 
+                            onClick={() => {
+                              setSelectedCategory(sub.id);
+                              setCategoryPath(prev => [...prev, { id: sub.id, name: sub.name }]);
+                            }}
+                            className="bg-slate-900 hover:bg-slate-800 text-white font-extrabold px-3 py-1.5 rounded-lg text-[10px] uppercase shadow-2xs transition-colors cursor-pointer flex items-center gap-1"
+                            title="Navegar para as subcategorias internas desta categoria"
+                          >
+                            <FolderOpen className="w-3 h-3 text-cyan-400" /> Explorar Subs
+                          </button>
+
+                          {/* Action 2: Inspect listing / winner ads */}
                           <button 
                             onClick={() => handleApplyTrendKeyword(sub.name)}
-                            className="bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-black px-3 py-1.5 rounded-lg text-[10px] uppercase shadow-2xs transition-colors cursor-pointer"
+                            className="bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-black px-3 py-1.5 rounded-lg text-[10px] uppercase shadow-2xs transition-colors cursor-pointer flex items-center gap-0.5"
                           >
-                            Analisar Anúncios ⚡
+                            Analisar ⚡
                           </button>
                         </div>
                       </div>
@@ -1716,15 +1982,118 @@ export default function OportunidadesMercado({ isMeliConnected, isMeliOfficial, 
                   </div>
 
                   {/* Category Field */}
-                  <div className="space-y-1">
+                  <div className="space-y-1 relative" ref={categoryDropdownRef}>
                     <label className="text-[10px] text-slate-400 uppercase font-mono font-bold block">Filtrar por nome de Categoria:</label>
-                    <input 
-                      type="text" 
-                      value={filterCategory} 
-                      onChange={(e) => setFilterCategory(e.target.value)}
-                      placeholder="Ex: Celulares, Eletrônicos..."
-                      className="w-full bg-slate-50 border border-slate-200 text-xs p-2 rounded-lg text-slate-700 font-semibold focus:outline-none focus:border-slate-400"
-                    />
+                    <div className="relative">
+                      <input 
+                        type="text" 
+                        value={filterCategory} 
+                        onChange={(e) => {
+                          setFilterCategory(e.target.value);
+                          setShowCategoryDropdown(true);
+                        }}
+                        onFocus={() => setShowCategoryDropdown(true)}
+                        placeholder="Ex: Celulares, Informática..."
+                        className="w-full bg-slate-50 border border-slate-200 text-xs p-2.5 pr-8 rounded-lg text-slate-700 font-semibold focus:outline-none focus:border-cyan-400 focus:bg-white placeholder:text-slate-400 transition-all font-sans"
+                      />
+                      {filterCategory ? (
+                        <button 
+                          onClick={() => {
+                            setFilterCategory('');
+                            setShowCategoryDropdown(false);
+                          }}
+                          className="absolute right-2.5 top-3 text-slate-400 hover:text-slate-600 transition-colors"
+                          type="button"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      ) : (
+                        <ChevronRight className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-3.5 rotate-90 pointer-events-none transition-transform" />
+                      )}
+                    </div>
+
+                    {showCategoryDropdown && (
+                      <div className="absolute left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg z-50 max-h-80 overflow-y-auto animate-in fade-in slide-in-from-top-1 duration-150 font-sans p-1.5 scrollbar-thin">
+                        <div className="p-1 px-1.5 border-b border-slate-100 bg-slate-50 text-[9px] text-slate-500 font-mono font-bold uppercase tracking-wider flex justify-between items-center">
+                          <span>Navegador de Árvore de Categorias</span>
+                          <span className="text-[8px] bg-cyan-50 text-cyan-700 font-bold px-1 rounded">Mercado Livre</span>
+                        </div>
+
+                        <div className="space-y-0.5 pt-1">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setFilterCategory('');
+                              setShowCategoryDropdown(false);
+                            }}
+                            className={`w-full text-left px-2 py-1.5 text-xs font-semibold rounded-lg transition-colors cursor-pointer ${
+                              !filterCategory ? 'bg-cyan-50/70 text-cyan-900 font-bold' : 'text-slate-500 hover:bg-slate-50'
+                            }`}
+                          >
+                            Tudo (Remover Filtro de Categoria)
+                          </button>
+
+                          {/* Render beautiful interactive tree or flat searched results */}
+                          {(() => {
+                            const isExactMatch = dropdownCategories.some((c: any) => c.name.toLowerCase() === filterCategory.toLowerCase()) || 
+                              (Object.values(loadedNodes).flat() as any[]).some((c: any) => c.name.toLowerCase() === filterCategory.toLowerCase());
+                            const hasSearchText = filterCategory && !isExactMatch;
+
+                            if (hasSearchText) {
+                              const flatMatches = (dropdownCategories as any[])
+                                .concat(Object.values(loadedNodes).flat() as any[])
+                                .filter((cat: any, index: number, self: any[]) => 
+                                  self.findIndex((c: any) => c.id === cat.id) === index &&
+                                  cat.name.toLowerCase().includes(filterCategory.toLowerCase())
+                                );
+
+                              if (flatMatches.length === 0) {
+                                return (
+                                  <div className="text-center py-4 px-2 text-xs text-slate-400 font-semibold italic">
+                                    Nenhuma categoria coincide...
+                                  </div>
+                                );
+                              }
+
+                              return (
+                                <div className="space-y-0.5 max-h-64 overflow-y-auto pt-1">
+                                  <div className="p-1 text-[8.5px] text-slate-400 font-mono font-bold uppercase bg-slate-50 rounded mb-1">Resultados da pesquisa:</div>
+                                  {flatMatches.map((cat) => {
+                                    const isSelected = filterCategory.toLowerCase() === cat.name.toLowerCase();
+                                    return (
+                                      <div
+                                        key={cat.id}
+                                        className={`group/searchItem w-full flex items-center justify-between p-1 rounded-lg transition-all border border-transparent cursor-pointer ${
+                                          isSelected ? 'bg-cyan-50 border-cyan-100' : 'hover:bg-slate-50'
+                                        }`}
+                                        onClick={() => {
+                                          setFilterCategory(cat.name);
+                                          setShowCategoryDropdown(false);
+                                        }}
+                                      >
+                                        <span className={`text-xs ml-1 font-semibold ${isSelected ? 'text-cyan-950 font-extrabold' : 'text-slate-600'}`}>
+                                          {cat.name}
+                                        </span>
+                                        <span className="text-[7.5px] font-mono text-slate-400 bg-slate-100 px-1 py-0.5 rounded">
+                                          {cat.id}
+                                        </span>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              );
+                            }
+
+                            // Interactive Category Tree
+                            return (
+                              <div className="pt-1 max-h-64 overflow-y-auto space-y-0.5 animate-in fade-in duration-200">
+                                {renderDropdownCategoryTreeNodes(dropdownCategories, 0)}
+                              </div>
+                            );
+                          })()}
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* Shipping Type Checkboxes */}

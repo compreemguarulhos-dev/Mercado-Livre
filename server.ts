@@ -412,6 +412,9 @@ async function startServer() {
       if (limit) searchParams.append("limit", String(limit));
       if (offset) searchParams.append("offset", String(offset));
       if (attributes) searchParams.append("attributes", String(attributes));
+      if (category) searchParams.append("category", String(category));
+      if (brand) searchParams.append("brand", String(brand));
+      if (seller) searchParams.append("seller", String(seller));
 
       const url = `https://api.mercadolibre.com/sites/${targetSiteId}/search?${searchParams.toString()}`;
       console.log(`[Proxy Search] Fetching from Mercado Livre: ${url}`);
