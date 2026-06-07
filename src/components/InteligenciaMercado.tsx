@@ -45,6 +45,7 @@ export default function InteligenciaMercado({ isMeliConnected, isMeliOfficial, s
   // Collapsible Tree state for nested categories inside filter selector
   const [categories, setCategories] = useState<any[]>([]);
   const [filterCategory, setFilterCategory] = useState<string>('');
+  const [filterCategoryId, setFilterCategoryId] = useState<string>('');
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
   const categoryDropdownRef = useRef<HTMLDivElement>(null);
   const [expandedNodes, setExpandedNodes] = useState<Record<string, boolean>>({});
@@ -72,6 +73,7 @@ export default function InteligenciaMercado({ isMeliConnected, isMeliOfficial, s
               setExpandedNodes(prev => ({ ...prev, [nodeId]: true }));
             } else {
               setFilterCategory(cat.name);
+              setFilterCategoryId(cat.id);
               setShowCategoryDropdown(false);
             }
           })
@@ -171,6 +173,7 @@ export default function InteligenciaMercado({ isMeliConnected, isMeliOfficial, s
                 type="button"
                 onClick={() => {
                   setFilterCategory(cat.name);
+                  setFilterCategoryId(cat.id);
                   setShowCategoryDropdown(false);
                 }}
                 className={`flex-1 text-left py-0.5 text-xs font-semibold cursor-pointer truncate ${
@@ -318,7 +321,7 @@ export default function InteligenciaMercado({ isMeliConnected, isMeliOfficial, s
     const attributesStr = "results.id,results.title,results.price,results.thumbnail,results.shipping,results.condition,results.permalink,results.sold_quantity,results.available_quantity,results.domain_id";
     
     // Official public API endpoint routed via securely pre-configured proxy to avoid CORS/network issues
-    const url = getApiUrl(`/api/meli/search?siteId=${siteId}&q=${cleanQuery}&limit=${itemsLimit}&offset=${offset}&attributes=${attributesStr}${filterCategory ? `&category=${encodeURIComponent(filterCategory)}` : ''}`);
+    const url = getApiUrl(`/api/meli/search?siteId=${siteId}&q=${cleanQuery}&limit=${itemsLimit}&offset=${offset}&attributes=${attributesStr}${(filterCategoryId || filterCategory) ? `&category=${encodeURIComponent(filterCategoryId || filterCategory)}` : ''}`);
 
     const headers: Record<string, string> = {
       "Accept": "application/json"
@@ -631,6 +634,7 @@ export default function InteligenciaMercado({ isMeliConnected, isMeliOfficial, s
                   value={filterCategory} 
                   onChange={(e) => {
                     setFilterCategory(e.target.value);
+                    setFilterCategoryId(''); // Clear the ID as they are typing custom search text
                     setShowCategoryDropdown(true);
                   }}
                   onFocus={() => setShowCategoryDropdown(true)}
@@ -641,6 +645,7 @@ export default function InteligenciaMercado({ isMeliConnected, isMeliOfficial, s
                   <button 
                     onClick={() => {
                       setFilterCategory('');
+                      setFilterCategoryId('');
                       setShowCategoryDropdown(false);
                     }}
                     className="absolute right-2.5 top-3 text-slate-400 hover:text-slate-600 transition-colors"
@@ -665,6 +670,7 @@ export default function InteligenciaMercado({ isMeliConnected, isMeliOfficial, s
                       type="button"
                       onClick={() => {
                         setFilterCategory('');
+                        setFilterCategoryId('');
                         setShowCategoryDropdown(false);
                       }}
                       className={`w-full text-left px-2 py-1.5 text-xs font-semibold rounded-lg transition-colors cursor-pointer ${
@@ -709,6 +715,7 @@ export default function InteligenciaMercado({ isMeliConnected, isMeliOfficial, s
                                   }`}
                                   onClick={() => {
                                     setFilterCategory(cat.name);
+                                    setFilterCategoryId(cat.id);
                                     setShowCategoryDropdown(false);
                                   }}
                                 >

@@ -412,7 +412,20 @@ async function startServer() {
       if (limit) searchParams.append("limit", String(limit));
       if (offset) searchParams.append("offset", String(offset));
       if (attributes) searchParams.append("attributes", String(attributes));
-      if (category) searchParams.append("category", String(category));
+      if (category) {
+        const categoryStr = String(category).trim();
+        const isValidId = /^[a-zA-Z]{3,5}\d+$/.test(categoryStr);
+        if (isValidId) {
+          searchParams.append("category", categoryStr);
+        } else {
+          // If a text name is passed, we append it to the search keywords to give high success rate
+          if (cleanQuery && !cleanQuery.toLowerCase().includes(categoryStr.toLowerCase())) {
+            searchParams.set("q", `${cleanQuery} ${categoryStr}`);
+          } else if (!cleanQuery) {
+            searchParams.set("q", categoryStr);
+          }
+        }
+      }
       if (brand) searchParams.append("brand", String(brand));
       if (seller) searchParams.append("seller", String(seller));
 

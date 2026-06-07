@@ -92,6 +92,7 @@ export default function OportunidadesMercado({ isMeliConnected, isMeliOfficial, 
   
   // 1. "produto" Card Panel
   const [filterCategory, setFilterCategory] = useState<string>('');
+  const [filterCategoryId, setFilterCategoryId] = useState<string>('');
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
   const categoryDropdownRef = useRef<HTMLDivElement>(null);
 
@@ -122,6 +123,7 @@ export default function OportunidadesMercado({ isMeliConnected, isMeliOfficial, 
               setExpandedNodes(prev => ({ ...prev, [nodeId]: true }));
             } else {
               setFilterCategory(cat.name);
+              setFilterCategoryId(cat.id);
               setShowCategoryDropdown(false);
             }
           })
@@ -220,6 +222,7 @@ export default function OportunidadesMercado({ isMeliConnected, isMeliOfficial, 
                 type="button"
                 onClick={() => {
                   setFilterCategory(cat.name);
+                  setFilterCategoryId(cat.id);
                   setShowCategoryDropdown(false);
                 }}
                 className={`flex-1 text-left py-0.5 text-xs font-semibold cursor-pointer truncate ${
@@ -391,6 +394,43 @@ export default function OportunidadesMercado({ isMeliConnected, isMeliOfficial, 
     }
     
     return 'Casa, Móveis e Decoração'; // Safer default than Celulares e Telefones
+  };
+
+  const matchCategory = (title: string, categoryFilter: string): boolean => {
+    if (!categoryFilter) return true;
+    
+    const titleNorm = normalizeForMatching(title);
+    const catFilterNorm = normalizeForMatching(categoryFilter);
+    const calculatedCategory = getProductCategory(title);
+    const calculatedCategoryNorm = normalizeForMatching(calculatedCategory);
+    
+    // Direct matches
+    if (titleNorm.includes(catFilterNorm) || calculatedCategoryNorm.includes(catFilterNorm) || catFilterNorm.includes(calculatedCategoryNorm)) {
+      return true;
+    }
+    
+    // Keyword based matches with singularization
+    const stopWords = new Set(['para', 'com', 'dos', 'das', 'uma', 'uns', 'de', 'do', 'da', 'os', 'as', 'em', 'ou', 'um']);
+    const filterWords = catFilterNorm.split(/[\s-]+/).filter(w => w.length >= 3 && !stopWords.has(w));
+    
+    if (filterWords.length === 0) return true;
+    
+    const stemWord = (w: string) => {
+      if (w.endsWith('s') && w.length > 3) {
+        if (w.endsWith('es')) return w.slice(0, -2);
+        return w.slice(0, -1);
+      }
+      return w;
+    };
+
+    for (const w of filterWords) {
+      const stem = stemWord(w);
+      if (titleNorm.includes(stem) || calculatedCategoryNorm.includes(stem)) {
+        return true;
+      }
+    }
+    
+    return false;
   };
 
   const getProductBrand = (title: string, category: string, hash: number) => {
@@ -766,7 +806,7 @@ export default function OportunidadesMercado({ isMeliConnected, isMeliOfficial, 
     const offset = (currentPage - 1) * itemsLimit;
     
     // We trigger the proxy endpoint with dynamic limit and offset, passing the filters so backend can adapt simulated results
-    const url = getApiUrl(`/api/meli/search?siteId=${siteId}&q=${cleanWord}&limit=${itemsLimit}&offset=${offset}&attributes=${attributesStr}&category=${encodeURIComponent(filterCategory)}&brand=${encodeURIComponent(marcaQuery)}&seller=${encodeURIComponent(vendedorQuery)}`);
+    const url = getApiUrl(`/api/meli/search?siteId=${siteId}&q=${cleanWord}&limit=${itemsLimit}&offset=${offset}&attributes=${attributesStr}&category=${encodeURIComponent(filterCategoryId || filterCategory)}&brand=${encodeURIComponent(marcaQuery)}&seller=${encodeURIComponent(vendedorQuery)}`);
 
     const headers: Record<string, string> = {
       "Accept": "application/json"
@@ -856,13 +896,12 @@ export default function OportunidadesMercado({ isMeliConnected, isMeliOfficial, 
 
         // 1. Categoria
         if (filterCategory) {
-          const catNameLower = normalizeForMatching(filterCategory);
-          filtered = filtered.filter(p => {
-            const calculatedCategory = getProductCategory(p.title);
-            const titleNorm = normalizeForMatching(p.title);
-            const catNorm = normalizeForMatching(calculatedCategory);
-            return titleNorm.includes(catNameLower) || catNorm.includes(catNameLower);
-          });
+          const tempFiltered = filtered.filter(p => matchCategory(p.title, filterCategory));
+          if (tempFiltered.length > 0) {
+            filtered = tempFiltered;
+          } else {
+            console.warn(`[Category Filter] No items matched "${filterCategory}" on local rules - keeping results.`);
+          }
         }
 
         // 2. Tipo de Envio
@@ -1411,8 +1450,10 @@ export default function OportunidadesMercado({ isMeliConnected, isMeliOfficial, 
 
         // Apply fallback filters
         if (filterCategory) {
-          const catNameLower = filterCategory.toLowerCase();
-          filtered = filtered.filter(p => p.title.toLowerCase().includes(catNameLower));
+          const tempFiltered = filtered.filter(p => matchCategory(p.title, filterCategory));
+          if (tempFiltered.length > 0) {
+            filtered = tempFiltered;
+          }
         }
         if (envioFull) {
           filtered = filtered.filter(p => p.logisticType === "fulfillment");
@@ -1990,6 +2031,7 @@ export default function OportunidadesMercado({ isMeliConnected, isMeliOfficial, 
                         value={filterCategory} 
                         onChange={(e) => {
                           setFilterCategory(e.target.value);
+                          setFilterCategoryId(''); // Clear ID as they typed custom search text
                           setShowCategoryDropdown(true);
                         }}
                         onFocus={() => setShowCategoryDropdown(true)}
@@ -2000,6 +2042,7 @@ export default function OportunidadesMercado({ isMeliConnected, isMeliOfficial, 
                         <button 
                           onClick={() => {
                             setFilterCategory('');
+                            setFilterCategoryId('');
                             setShowCategoryDropdown(false);
                           }}
                           className="absolute right-2.5 top-3 text-slate-400 hover:text-slate-600 transition-colors"
@@ -2024,6 +2067,7 @@ export default function OportunidadesMercado({ isMeliConnected, isMeliOfficial, 
                             type="button"
                             onClick={() => {
                               setFilterCategory('');
+                              setFilterCategoryId('');
                               setShowCategoryDropdown(false);
                             }}
                             className={`w-full text-left px-2 py-1.5 text-xs font-semibold rounded-lg transition-colors cursor-pointer ${
@@ -2068,6 +2112,7 @@ export default function OportunidadesMercado({ isMeliConnected, isMeliOfficial, 
                                         }`}
                                         onClick={() => {
                                           setFilterCategory(cat.name);
+                                          setFilterCategoryId(cat.id);
                                           setShowCategoryDropdown(false);
                                         }}
                                       >
@@ -2569,6 +2614,7 @@ export default function OportunidadesMercado({ isMeliConnected, isMeliOfficial, 
                     <button 
                       onClick={() => {
                         setFilterCategory('');
+                        setFilterCategoryId('');
                         setEnvioFull(false);
                         setEnvioFreteGratis(false);
                         setEnvioInternacional(false);
