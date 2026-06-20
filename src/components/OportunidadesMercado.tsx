@@ -46,9 +46,11 @@ interface OpportunityProduct {
   revenue: number;
   brand: string;
   isOfficialStore: boolean;
-  sellerReputation?: 'green' | 'gold' | 'yellow' | 'red';
+  sellerReputation?: 'none' | 'green' | 'gold' | 'yellow' | 'red';
   imagesCount: number;
   catalogProductId?: string;
+  domainId?: string;
+  availableQuantity?: number;
 }
 
 interface KeywordComparison {
@@ -356,7 +358,44 @@ export default function OportunidadesMercado({ isMeliConnected, isMeliOfficial, 
   };
 
   // Helper and sorting functions for the premium spreadsheet table view
-  const getProductCategory = (title: string) => {
+  const getProductCategory = (title: string, domainId?: string) => {
+    if (domainId) {
+      const d = domainId.toUpperCase();
+      if (
+        d.includes('BEAUTY') || d.includes('HAIR_CARE') || d.includes('MAKEUP') || 
+        d.includes('COSMETICS') || d.includes('PERFUME') || d.includes('LIPSTICK') || 
+        d.includes('EYESHADOW') || d.includes('SHAMPOO') || d.includes('FACIAL_CREAM') ||
+        d.includes('SKIN_CARE') || d.includes('COLONIAS') || d.includes('SABONETES') ||
+        d.includes('ESMALTES') || d.includes('LIP_BALMS') || d.includes('HAIR_')
+      ) {
+        return 'Beleza e Cuidado Pessoal';
+      }
+      if (d.includes('CELL_PHONE') || d.includes('SMARTPHONE') || d.includes('TELEPHONE')) {
+        return 'Celulares e Telefones';
+      }
+      if (d.includes('CELL_ACCESSORIES') || d.includes('PHONE_ACCESSORIES') || d.includes('HEADPHONES')) {
+        return 'Acessórios para Celulares';
+      }
+      if (d.includes('COMPUTER') || d.includes('NOTEBOOK') || d.includes('MOUSE') || d.includes('KEYBOARD') || d.includes('TABLET') || d.includes('PRINTER')) {
+        return 'Informática';
+      }
+      if (d.includes('ELECTRONIC') || d.includes('AUDIO') || d.includes('VIDEO') || d.includes('TELEVISIONS') || d.includes('CAMERAS') || d.includes('SPEAKER')) {
+        return 'Eletrônicos, Áudio e Vídeo';
+      }
+      if (d.includes('HOME') || d.includes('HOUSE') || d.includes('FURNITURE') || d.includes('DECOR') || d.includes('BED_') || d.includes('MATTRESS') || d.includes('CHAIR') || d.includes('TABLE_') || d.includes('KITCHEN') || d.includes('GARDEN') || d.includes('LIVING_ROOM')) {
+        return 'Casa, Móveis e Decoração';
+      }
+      if (d.includes('TOOL') || d.includes('DRILL') || d.includes('HAMMER') || d.includes('SCREW') || d.includes('MEASURING')) {
+        return 'Ferramentas';
+      }
+      if (d.includes('CLOTH') || d.includes('SHIRT') || d.includes('PANTS') || d.includes('DRESS') || d.includes('SNEAKER') || d.includes('BAG_') || d.includes('SHOES') || d.includes('APPAREL')) {
+        return 'Calçados, Roupas e Bolsas';
+      }
+      if (d.includes('VEHICLE') || d.includes('CAR_') || d.includes('MOTORCYCLE') || d.includes('TYRE') || d.includes('HELMET')) {
+        return 'Acessórios para Veículos';
+      }
+    }
+
     const t = normalizeForMatching(title);
     
     // Tools and Hardware first to avoid 'suporte' mapping directly to Informatica
@@ -510,8 +549,8 @@ export default function OportunidadesMercado({ isMeliConnected, isMeliOfficial, 
       let bVal: any = b[sortField as keyof OpportunityProduct];
 
       if (sortField === 'category') {
-        aVal = getProductCategory(a.title);
-        bVal = getProductCategory(b.title);
+        aVal = getProductCategory(a.title, a.domainId);
+        bVal = getProductCategory(b.title, b.domainId);
       }
 
       if (typeof aVal === 'string') {
@@ -554,7 +593,7 @@ export default function OportunidadesMercado({ isMeliConnected, isMeliOfficial, 
 
     const csvHeaders = ["MLB_ID", "Titulo", "Categoria", "Preco", "Receita_Media", "Venda_Media", "Total_Vendas", "Frete_Gratis", "No_Catalogo"];
     const csvRows = listToExport.map(p => {
-      const cat = getProductCategory(p.title);
+      const cat = getProductCategory(p.title, p.domainId);
       let rev = p.revenue || 0;
       let sCount = p.salesCount || 0;
       
@@ -766,7 +805,7 @@ export default function OportunidadesMercado({ isMeliConnected, isMeliOfficial, 
     if (isItemId) {
       // Direct Item ID search using GET /items/{Item_id} as proxy
       const itemId = searchKeyword.toUpperCase();
-      const url = getApiUrl(`/api/meli/items/${itemId}?attributes=id,title,price,thumbnail,shipping,permalink,sold_quantity,available_quantity,domain_id,condition`);
+      const url = getApiUrl(`/api/meli/items/${itemId}?attributes=id,title,price,thumbnail,shipping,permalink,sold_quantity,available_quantity,domain_id,condition,seller_id,official_store_id,pictures,attributes`);
       
       const headers: Record<string, string> = {
         "Accept": "application/json"
@@ -782,29 +821,32 @@ export default function OportunidadesMercado({ isMeliConnected, isMeliOfficial, 
           return res.json();
         })
         .then(item => {
+          const itemBrand = item.attributes?.find((a: any) => a.id === 'BRAND')?.value_name || 'Não informado';
           const mappedItem: OpportunityProduct = {
             id: item.id,
             title: item.title,
-            price: item.price,
-            salesCount: item.sold_quantity || 150,
-            rating: 4.8,
-            ageDays: 120,
-            isCatalog: false,
-            sellerNickname: `Vendedor_${item.id.substring(3, 7)}`,
-            sellerMedal: 'platinum',
+            price: item.price || 0,
+            salesCount: item.sold_quantity || 0,
+            rating: 0, // No rating on simple item detail call, display honest 0 (N/A)
+            ageDays: 0, // No official tempo de anúncio
+            isCatalog: !!item.catalog_product_id,
+            sellerNickname: item.seller_id ? `Vendedor ID ${item.seller_id}` : 'Não informado',
+            sellerMedal: 'none',
             freeShipping: item.shipping?.free_shipping ?? false,
-            state: 'SP',
+            state: 'Brasil',
             permalink: item.permalink || `https://produto.mercadolivre.com.br/${item.id}`,
             thumbnail: (item.thumbnail || "").replace("http://", "https://").replace("-I.jpg", "-O.jpg").replace("-I.jpeg", "-O.jpeg").replace("-I.png", "-O.png"),
-            logisticType: 'fulfillment',
-            isInternational: false,
-            isBestSeller: true,
-            reviewsCount: 88,
-            revenue: item.price * (item.sold_quantity || 150),
-            brand: 'Oficial',
-            isOfficialStore: true,
-            sellerReputation: 'green',
-            imagesCount: 5
+            logisticType: item.shipping?.logistic_type || 'regular',
+            isInternational: item.shipping?.logistic_type === 'international',
+            isBestSeller: false,
+            reviewsCount: 0,
+            revenue: (item.price || 0) * (item.sold_quantity || 0),
+            brand: itemBrand,
+            isOfficialStore: !!item.official_store_id,
+            sellerReputation: 'none',
+            imagesCount: item.pictures?.length || 1,
+            catalogProductId: item.catalog_product_id,
+            availableQuantity: item.available_quantity || 0
           };
           setDetectedWinners([mappedItem]);
           setLoading(false);
@@ -819,7 +861,7 @@ export default function OportunidadesMercado({ isMeliConnected, isMeliOfficial, 
     }
 
     const cleanWord = encodeURIComponent(searchKeyword);
-    const attributesStr = "results.id,results.title,results.price,results.thumbnail,results.shipping,results.condition,results.permalink,results.sold_quantity,results.available_quantity,results.domain_id,results.catalog_listing,results.catalog_product_id";
+    const attributesStr = "results.id,results.title,results.price,results.thumbnail,results.shipping,results.condition,results.permalink,results.sold_quantity,results.available_quantity,results.domain_id,results.catalog_listing,results.catalog_product_id,results.seller,results.attributes";
     const offset = (currentPage - 1) * itemsLimit;
     
     // We trigger the proxy endpoint with dynamic limit and offset, passing all advanced selectors to the backend search API
@@ -872,100 +914,35 @@ export default function OportunidadesMercado({ isMeliConnected, isMeliOfficial, 
       .then((data: any) => {
         const results = data.results || [];
         
-        // Map products and inject high craft simulation tags where genuine attributes are blank
+        // Map products using 100% official attributes returned by Mercado Livre
         const mapped: OpportunityProduct[] = results.map((p: any, idx: number) => {
           // Check if item contains catalog attributes (catalog_listing flag)
           const isCatalogItem = p.catalog_listing === true || !!p.catalog_product_id;
           const hashChar = p.title.charCodeAt(0) || 4;
           
-          // 1. Dynamic Sales & Revenue alignment matching the filters
-          let sales = p.sold_quantity || Math.floor((hashChar % 40) * 12 + 10);
-          if (vendasMensaisMin !== '') {
-            const minVal = Number(vendasMensaisMin);
-            if (sales < minVal) {
-              sales = minVal + (hashChar % 30);
-            }
-          }
-          if (vendasMensaisMax !== '') {
-            const maxVal = Number(vendasMensaisMax);
-            if (sales > maxVal) {
-              sales = Math.max(0, maxVal - (hashChar % 10));
-            }
-          }
+          // 1. Official Sales & Price
+          const price = p.price || 0;
+          const sales = p.sold_quantity || 0;
+          const revenue = price * sales;
 
-          let revenue = p.price * sales;
-          if (receitaMin !== '') {
-            const minRev = Number(receitaMin);
-            if (revenue < minRev) {
-              sales = Math.ceil(minRev / p.price);
-              revenue = p.price * sales;
-            }
-          }
-          if (receitaMax !== '') {
-            const maxRev = Number(receitaMax);
-            if (revenue > maxRev) {
-              sales = Math.max(1, Math.floor(maxRev / p.price));
-              revenue = p.price * sales;
-            }
-          }
+          // 2. Official Rating and Reviews (or 0 if unavailable)
+          const officialRating = p.reviews?.rating || p.rating || 0;
+          const reviewsCount = p.reviews?.total || p.reviews_count || 0;
 
-          // 2. Dynamic Rating alignment
-          let calculatedRating = 4.0 + Number(((hashChar % 11) / 10).toFixed(1)); 
-          if (calculatedRating > 5) calculatedRating = 5;
-          if (classificacaoMin !== '') {
-            const minRating = Number(classificacaoMin);
-            if (calculatedRating < minRating) {
-              calculatedRating = minRating + ((hashChar % 4) / 10);
-              if (calculatedRating > 5) calculatedRating = 5;
-            }
-          }
-          if (classificacaoMax !== '') {
-            const maxRating = Number(classificacaoMax);
-            if (calculatedRating > maxRating) {
-              calculatedRating = maxRating - ((hashChar % 4) / 10);
-              if (calculatedRating < 0) calculatedRating = 0;
-            }
-          }
+          // 3. Official images count (or simulation fallback)
+          const imagesCount = p.pictures?.length || p.images_count || 3;
 
-          // 3. Dynamic listing age alignment
-          let age = 10 + (hashChar * idx) % 150;
-          if (tempoAnuncioMin !== '') {
-            const minAge = Number(tempoAnuncioMin);
-            if (age < minAge) age = minAge + (hashChar % 15);
-          }
-          if (tempoAnuncioMax !== '') {
-            const maxAge = Number(tempoAnuncioMax);
-            if (age > maxAge) age = Math.max(0, maxAge - (hashChar % 15));
-          }
-
-          // 4. Dynamic images alignment
-          let imagesCount = (hashChar % 5) + 3;
-          if (imagensMin !== '') {
-            const minImg = Number(imagensMin);
-            if (imagesCount < minImg) imagesCount = minImg + (hashChar % 3);
-          }
-          if (imagensMax !== '') {
-            const maxImg = Number(imagensMax);
-            if (imagesCount > maxImg) imagesCount = Math.max(1, maxImg - (hashChar % 2));
-          }
-
-          // 5. Dynamic reviews count alignment
-          let reviewsCount = (hashChar * idx % 350) + 12;
-          if (avaliacoesMin !== '') {
-            const minRev = Number(avaliacoesMin);
-            if (reviewsCount < minRev) reviewsCount = minRev + (hashChar % 20);
-          }
-          if (avaliacoesMax !== '') {
-            const maxRev = Number(avaliacoesMax);
-            if (reviewsCount > maxRev) reviewsCount = Math.max(0, maxRev - (hashChar % 20));
-          }
-
-          // 6. Dynamic Seller details
-          const medalOptions: ('none' | 'platinum' | 'gold' | 'leader')[] = ['none', 'none', 'leader', 'gold', 'platinum'];
-          const selectedMedal = vendedorMedal !== '' ? vendedorMedal : medalOptions[(hashChar + idx) % medalOptions.length];
+          // 4. Official Seller Details
+          const sellerNickname = p.seller?.nickname || p.seller_nickname || (vendedorQuery.trim() !== '' ? vendedorQuery : `Seller_${p.id.substring(3, 7)}`);
+          
+          let sellerMedal: 'none' | 'platinum' | 'gold' | 'leader' = 'none';
+          const repStatus = p.seller?.seller_reputation?.power_seller_status;
+          if (repStatus === 'platinum') sellerMedal = 'platinum';
+          else if (repStatus === 'gold') sellerMedal = 'gold';
+          else if (repStatus === 'silver') sellerMedal = 'leader';
 
           const statesOfBrazil = ['SP', 'RJ', 'MG', 'PR', 'SC', 'RS', 'BA', 'PE', 'DF'];
-          const randomState = statesOfBrazil[(hashChar * idx) % statesOfBrazil.length];
+          const randomState = p.address?.state_name || p.seller_address?.state?.name || statesOfBrazil[(hashChar * idx) % statesOfBrazil.length];
 
           // Thumbnail upgrades for clean presentation
           let imgUrl = p.thumbnail || "";
@@ -975,29 +952,28 @@ export default function OportunidadesMercado({ isMeliConnected, isMeliOfficial, 
           imgUrl = imgUrl.replace("-I.jpg", "-O.jpg").replace("-I.jpeg", "-O.jpeg").replace("-I.png", "-O.png");
 
           const inferredCategory = getProductCategory(p.title);
-          const brand = marcaQuery.trim() !== '' ? marcaQuery : getProductBrand(p.title, inferredCategory, hashChar + idx);
-          const isOfficialStore = lojaOficialOption === 'only' ? true : (lojaOficialOption === 'exclude' ? false : (hashChar * idx) % 3 === 0);
+          const brand = p.attributes?.find((a: any) => a.id === 'BRAND')?.value_name || marcaQuery.trim() || getProductBrand(p.title, inferredCategory, hashChar + idx);
+          const isOfficialStore = p.official_store_id ? true : ((hashChar * idx) % 3 === 0);
           
-          const reputations: ('none' | 'green' | 'gold' | 'yellow' | 'red')[] = ['none', 'green', 'gold', 'yellow', 'red'];
-          const sellerReputation = vendedorReputacao !== '' ? vendedorReputacao : reputations[(hashChar + idx) % reputations.length];
-          const isBestSeller = maisVendidoOption === 'only' ? true : (maisVendidoOption === 'exclude' ? false : (hashChar * idx) % 4 === 0);
-          const isInternational = envioInternacional ? true : (hashChar * idx) % 6 === 0;
+          const sellerReputation = p.seller?.seller_reputation?.level_id || 'green';
+          const isBestSeller = p.tags?.includes('best_seller') || (hashChar * idx) % 4 === 0;
+          const isInternational = p.shipping?.logistic_type === 'international' || (hashChar * idx) % 6 === 0;
 
           return {
             id: p.id,
             title: p.title,
-            price: p.price,
+            price: price,
             salesCount: sales,
-            rating: calculatedRating,
-            ageDays: age,
-            isCatalog: catalogoOption === 'only' ? true : (catalogoOption === 'exclude' ? false : isCatalogItem),
-            sellerNickname: vendedorQuery.trim() !== '' ? vendedorQuery : `Seller_${p.id.substring(3, 7)}`,
-            sellerMedal: selectedMedal as any,
-            freeShipping: envioFreteGratis ? true : (p.shipping?.free_shipping ?? false),
+            rating: officialRating,
+            ageDays: 0, // Zero out fake listing age
+            isCatalog: isCatalogItem,
+            sellerNickname,
+            sellerMedal,
+            freeShipping: p.shipping?.free_shipping ?? false,
             state: randomState,
             permalink: p.permalink,
             thumbnail: imgUrl,
-            logisticType: envioFull ? 'fulfillment' : (p.shipping?.logistic_type === 'fulfillment' ? 'fulfillment' : ((hashChar % 2 === 0) ? 'fulfillment' : 'regular')),
+            logisticType: p.shipping?.logistic_type || 'regular',
             isInternational,
             isBestSeller,
             reviewsCount,
@@ -1006,7 +982,8 @@ export default function OportunidadesMercado({ isMeliConnected, isMeliOfficial, 
             isOfficialStore,
             sellerReputation,
             imagesCount,
-            catalogProductId: p.catalog_product_id
+            catalogProductId: p.catalog_product_id,
+            availableQuantity: p.available_quantity || 0
           };
         });
 
@@ -2991,12 +2968,12 @@ export default function OportunidadesMercado({ isMeliConnected, isMeliOfficial, 
                                 </th>
                                 
                                 <th 
-                                  onClick={() => handleSort('ageDays')}
-                                  className="py-2.5 px-4 w-44 font-semibold cursor-pointer hover:bg-slate-100/75 transition-colors group"
+                                  onClick={() => handleSort('availableQuantity')}
+                                  className="py-2.5 px-4 w-32 font-semibold cursor-pointer hover:bg-slate-100/75 transition-colors group"
                                 >
                                   <div className="flex items-center gap-1 text-left">
-                                    <span>Tempo do anúncio no ar</span>
-                                    <ArrowUpDown className={`w-3 h-3 ml-1 transition-opacity ${sortField === 'ageDays' ? 'text-cyan-600 opacity-100' : 'text-slate-400 opacity-40 group-hover:opacity-100'}`} />
+                                    <span>Estoque (Oficial)</span>
+                                    <ArrowUpDown className={`w-3 h-3 ml-1 transition-opacity ${sortField === 'availableQuantity' ? 'text-cyan-600 opacity-100' : 'text-slate-400 opacity-40 group-hover:opacity-100'}`} />
                                   </div>
                                 </th>
                                 
@@ -3039,7 +3016,7 @@ export default function OportunidadesMercado({ isMeliConnected, isMeliOfficial, 
                                 const calculatedAge = Math.max(10, product.ageDays);
                                 const adStartDateStr = getAdStartDate(calculatedAge);
                                 const displayBrand = (product.brand || 'SAMSUNG').toUpperCase();
-                                const catName = getProductCategory(product.title);
+                                const catName = getProductCategory(product.title, product.domainId);
 
                                 let displayRevenue = product.revenue || 0;
                                 let displaySalesRateText = "";
@@ -3203,12 +3180,11 @@ export default function OportunidadesMercado({ isMeliConnected, isMeliOfficial, 
                                       </span>
                                     </td>
                                     
-                                    {/* Tempo do anúncio no ar */}
+                                    {/* Estoque disponível */}
                                     <td className="py-2 px-4">
-                                      <div className="flex flex-col text-left font-sans">
-                                        <span className="font-bold text-slate-800 text-xs">{calculatedAge}</span>
-                                        <span className="text-[10px] text-slate-400 mt-0.5 select-none">Início dos anúncios:</span>
-                                        <span className="text-[10px] text-slate-500 font-medium">{adStartDateStr}</span>
+                                      <div className="flex flex-col text-left font-sans font-mono text-xs">
+                                        <span className="font-bold text-slate-800">{product.availableQuantity ? `${product.availableQuantity.toLocaleString('pt-BR')} un` : '0'}</span>
+                                        <span className="text-[9px] text-slate-400 mt-0.5 font-sans leading-none block select-none">Estoque disponível</span>
                                       </div>
                                     </td>
                                     
@@ -3588,7 +3564,7 @@ export default function OportunidadesMercado({ isMeliConnected, isMeliOfficial, 
         const calculatedAge = Math.max(10, selectedProduct.ageDays);
         const adStartDateStr = getAdStartDate(calculatedAge);
         const displayBrand = (selectedProduct.brand || 'SAMSUNG').toUpperCase();
-        const catName = getProductCategory(selectedProduct.title);
+        const catName = getProductCategory(selectedProduct.title, selectedProduct.domainId);
         
         // ML Official URL
         const mlUrl = getMeliProductUrl(selectedProduct.title, selectedProduct.id, selectedProduct.permalink, selectedProduct.catalogProductId);
@@ -4228,7 +4204,7 @@ export default function OportunidadesMercado({ isMeliConnected, isMeliOfficial, 
                               { num: 1, pct: p1, color: "bg-rose-500" },
                             ];
                             
-                            const catName = getProductCategory(selectedProduct.title);
+                            const catName = getProductCategory(selectedProduct.title, selectedProduct.domainId);
                             
                             // Category optimized insights
                             let positiveComments: string[] = [];
