@@ -3736,6 +3736,20 @@ export default function OportunidadesMercado({ isMeliConnected, isMeliOfficial, 
                   {/* LADO DIREITO: DASHBOARD PRINCIPAL DE METRICAS (8 columns) */}
                   <div className="lg:col-span-8 space-y-6">
                     
+                    {/* Metodologia de Dados Real-time vs Estimado */}
+                    <div className="bg-cyan-50/70 border border-cyan-100 rounded-2xl p-4.5 text-xs text-cyan-800 leading-relaxed font-sans flex items-start gap-3.5 text-left">
+                      <Sparkles className="w-5 h-5 text-cyan-500 shrink-0 mt-0.5" />
+                      <div>
+                        <span className="font-bold text-cyan-950 block mb-0.5">🔍 Transparência de Dados MeliPro</span>
+                        <p className="text-cyan-900">
+                          O <strong>Preço Unitário</strong> (R$), o <strong>Título</strong>, o <strong>Frete Grátis</strong>, a <strong>Marca</strong> e o <strong>ID do anúncio</strong> são <strong>dados reais e extraídos em tempo real</strong> diretamente da busca pública do Mercado Livre.
+                        </p>
+                        <p className="mt-1 text-cyan-900/90">
+                          Como o Mercado Livre não disponibiliza publicamente o painel privado do vendedor com o número exato de vendas por mês, a <strong>Receita Média</strong> e as <strong>Vendas Mensais</strong> do anúncio são estimativas estatísticas obtidas de forma segura através de algoritmos de conversão, baseados em visitas virtuais, sazonalidade e idade da listagem.
+                        </p>
+                      </div>
+                    </div>
+
                     {/* Linha 1 de Boxes: Estatísticas Principais (Grid 3 Colunas) */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       
@@ -3748,17 +3762,17 @@ export default function OportunidadesMercado({ isMeliConnected, isMeliOfficial, 
                           </div>
                           
                           <div className="mt-3.5">
-                            <span className="text-[10px] text-slate-400 block font-mono font-bold">Preço de vendedor</span>
-                            <span className="text-xl md:text-2xl font-black text-slate-900 font-mono">
-                              R$ {(selectedProduct.price / 1000).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} mil
+                            <span className="text-[10px] text-slate-400 block font-mono font-bold">Valor Unitário</span>
+                            <span className="text-xl md:text-2xl font-black text-slate-900 font-mono text-cyan-600">
+                              R$ {selectedProduct.price.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </span>
                           </div>
                         </div>
 
                         <div className="border-t border-slate-100 mt-4 pt-3 space-y-1 text-[11px] font-medium font-mono text-slate-500">
                           <div className="flex justify-between">
-                            <span>Preço mín.</span>
-                            <strong className="text-slate-800">R$ {(selectedProduct.price * 0.95).toLocaleString('pt-BR', { maximumFractionDigits: 0 })}</strong>
+                            <span>Mín. Sugerido (95%)</span>
+                            <strong className="text-slate-800">R$ {(selectedProduct.price * 0.95).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
                           </div>
                           <div className="flex justify-between">
                             <span>Desconto máx.</span>
