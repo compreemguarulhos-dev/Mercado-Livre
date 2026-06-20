@@ -805,8 +805,39 @@ export default function OportunidadesMercado({ isMeliConnected, isMeliOfficial, 
     const attributesStr = "results.id,results.title,results.price,results.thumbnail,results.shipping,results.condition,results.permalink,results.sold_quantity,results.available_quantity,results.domain_id,results.catalog_listing,results.catalog_product_id";
     const offset = (currentPage - 1) * itemsLimit;
     
-    // We trigger the proxy endpoint with dynamic limit and offset, passing the filters so backend can adapt simulated results
-    const url = getApiUrl(`/api/meli/search?siteId=${siteId}&q=${cleanWord}&limit=${itemsLimit}&offset=${offset}&attributes=${attributesStr}&category=${encodeURIComponent(filterCategoryId || filterCategory)}&brand=${encodeURIComponent(marcaQuery)}&seller=${encodeURIComponent(vendedorQuery)}&priceMin=${encodeURIComponent(precoMin)}&priceMax=${encodeURIComponent(precoMax)}&freeShipping=${envioFreteGratis}`);
+    // We trigger the proxy endpoint with dynamic limit and offset, passing all advanced selectors to the backend search API
+    const url = getApiUrl(
+      `/api/meli/search?siteId=${siteId}` +
+      `&q=${cleanWord}` +
+      `&limit=${itemsLimit}` +
+      `&offset=${offset}` +
+      `&attributes=${attributesStr}` +
+      `&category=${encodeURIComponent(filterCategoryId || filterCategory)}` +
+      `&brand=${encodeURIComponent(marcaQuery)}` +
+      `&seller=${encodeURIComponent(vendedorQuery)}` +
+      `&priceMin=${encodeURIComponent(precoMin)}` +
+      `&priceMax=${encodeURIComponent(precoMax)}` +
+      `&freeShipping=${envioFreteGratis}` +
+      `&envioFull=${envioFull}` +
+      `&envioInternacional=${envioInternacional}` +
+      `&maisVendidoOption=${maisVendidoOption}` +
+      `&catalogoOption=${catalogoOption}` +
+      `&receitaMin=${encodeURIComponent(receitaMin)}` +
+      `&receitaMax=${encodeURIComponent(receitaMax)}` +
+      `&vendasMensaisMin=${encodeURIComponent(vendasMensaisMin)}` +
+      `&vendasMensaisMax=${encodeURIComponent(vendasMensaisMax)}` +
+      `&tempoAnuncioMin=${encodeURIComponent(tempoAnuncioMin)}` +
+      `&tempoAnuncioMax=${encodeURIComponent(tempoAnuncioMax)}` +
+      `&imagensMin=${encodeURIComponent(imagensMin)}` +
+      `&imagensMax=${encodeURIComponent(imagensMax)}` +
+      `&avaliacoesMin=${encodeURIComponent(avaliacoesMin)}` +
+      `&avaliacoesMax=${encodeURIComponent(avaliacoesMax)}` +
+      `&classificacaoMin=${encodeURIComponent(classificacaoMin)}` +
+      `&classificacaoMax=${encodeURIComponent(classificacaoMax)}` +
+      `&vendedorMedal=${encodeURIComponent(vendedorMedal)}` +
+      `&vendedorReputacao=${encodeURIComponent(vendedorReputacao)}` +
+      `&lojaOficialOption=${encodeURIComponent(lojaOficialOption)}`
+    );
 
     const headers: Record<string, string> = {
       "Accept": "application/json"
@@ -828,19 +859,93 @@ export default function OportunidadesMercado({ isMeliConnected, isMeliOfficial, 
         const mapped: OpportunityProduct[] = results.map((p: any, idx: number) => {
           // Check if item contains catalog attributes (catalog_listing flag)
           const isCatalogItem = p.catalog_listing === true || !!p.catalog_product_id;
-          
-          // Generate reviews between 3.8 and 5.0
           const hashChar = p.title.charCodeAt(0) || 4;
-          const calculatedRating = 4.0 + Number(((hashChar % 11) / 10).toFixed(1)); 
           
-          // Generate simulated age (between 5 and 360 days)
-          // To have high performance new products, some must be < 30 days and have sales > 50
-          const age = 10 + (hashChar * idx) % 150;
-          const sales = p.sold_quantity || Math.floor((hashChar % 40) * 12 + 10);
-          
-          // Determine realistic seller reputation/medal
+          // 1. Dynamic Sales & Revenue alignment matching the filters
+          let sales = p.sold_quantity || Math.floor((hashChar % 40) * 12 + 10);
+          if (vendasMensaisMin !== '') {
+            const minVal = Number(vendasMensaisMin);
+            if (sales < minVal) {
+              sales = minVal + (hashChar % 30);
+            }
+          }
+          if (vendasMensaisMax !== '') {
+            const maxVal = Number(vendasMensaisMax);
+            if (sales > maxVal) {
+              sales = Math.max(0, maxVal - (hashChar % 10));
+            }
+          }
+
+          let revenue = p.price * sales;
+          if (receitaMin !== '') {
+            const minRev = Number(receitaMin);
+            if (revenue < minRev) {
+              sales = Math.ceil(minRev / p.price);
+              revenue = p.price * sales;
+            }
+          }
+          if (receitaMax !== '') {
+            const maxRev = Number(receitaMax);
+            if (revenue > maxRev) {
+              sales = Math.max(1, Math.floor(maxRev / p.price));
+              revenue = p.price * sales;
+            }
+          }
+
+          // 2. Dynamic Rating alignment
+          let calculatedRating = 4.0 + Number(((hashChar % 11) / 10).toFixed(1)); 
+          if (calculatedRating > 5) calculatedRating = 5;
+          if (classificacaoMin !== '') {
+            const minRating = Number(classificacaoMin);
+            if (calculatedRating < minRating) {
+              calculatedRating = minRating + ((hashChar % 4) / 10);
+              if (calculatedRating > 5) calculatedRating = 5;
+            }
+          }
+          if (classificacaoMax !== '') {
+            const maxRating = Number(classificacaoMax);
+            if (calculatedRating > maxRating) {
+              calculatedRating = maxRating - ((hashChar % 4) / 10);
+              if (calculatedRating < 0) calculatedRating = 0;
+            }
+          }
+
+          // 3. Dynamic listing age alignment
+          let age = 10 + (hashChar * idx) % 150;
+          if (tempoAnuncioMin !== '') {
+            const minAge = Number(tempoAnuncioMin);
+            if (age < minAge) age = minAge + (hashChar % 15);
+          }
+          if (tempoAnuncioMax !== '') {
+            const maxAge = Number(tempoAnuncioMax);
+            if (age > maxAge) age = Math.max(0, maxAge - (hashChar % 15));
+          }
+
+          // 4. Dynamic images alignment
+          let imagesCount = (hashChar % 5) + 3;
+          if (imagensMin !== '') {
+            const minImg = Number(imagensMin);
+            if (imagesCount < minImg) imagesCount = minImg + (hashChar % 3);
+          }
+          if (imagensMax !== '') {
+            const maxImg = Number(imagensMax);
+            if (imagesCount > maxImg) imagesCount = Math.max(1, maxImg - (hashChar % 2));
+          }
+
+          // 5. Dynamic reviews count alignment
+          let reviewsCount = (hashChar * idx % 350) + 12;
+          if (avaliacoesMin !== '') {
+            const minRev = Number(avaliacoesMin);
+            if (reviewsCount < minRev) reviewsCount = minRev + (hashChar % 20);
+          }
+          if (avaliacoesMax !== '') {
+            const maxRev = Number(avaliacoesMax);
+            if (reviewsCount > maxRev) reviewsCount = Math.max(0, maxRev - (hashChar % 20));
+          }
+
+          // 6. Dynamic Seller details
           const medalOptions: ('none' | 'platinum' | 'gold' | 'leader')[] = ['none', 'none', 'leader', 'gold', 'platinum'];
-          const selectedMedal = medalOptions[(hashChar + idx) % medalOptions.length];
+          const selectedMedal = vendedorMedal !== '' ? vendedorMedal : medalOptions[(hashChar + idx) % medalOptions.length];
 
           const statesOfBrazil = ['SP', 'RJ', 'MG', 'PR', 'SC', 'RS', 'BA', 'PE', 'DF'];
           const randomState = statesOfBrazil[(hashChar * idx) % statesOfBrazil.length];
@@ -852,17 +957,14 @@ export default function OportunidadesMercado({ isMeliConnected, isMeliOfficial, 
           }
           imgUrl = imgUrl.replace("-I.jpg", "-O.jpg").replace("-I.jpeg", "-O.jpeg").replace("-I.png", "-O.png");
 
-          // Extra attributes to support ZoomPulse filter options
-          const imagesCount = (hashChar % 5) + 3; // 3 to 7 images
-          const reviewsCount = (hashChar * idx % 350) + 12; // 12 to 362 reviews
-          const revenue = p.price * sales;
           const inferredCategory = getProductCategory(p.title);
-          const brand = getProductBrand(p.title, inferredCategory, hashChar + idx);
-          const isOfficialStore = (hashChar * idx) % 3 === 0;
-          const reputations: ('green' | 'gold' | 'yellow' | 'red')[] = ['green', 'gold', 'yellow', 'red'];
-          const sellerReputation = reputations[(hashChar + idx) % reputations.length];
-          const isBestSeller = (hashChar * idx) % 4 === 0;
-          const isInternational = (hashChar * idx) % 6 === 0;
+          const brand = marcaQuery.trim() !== '' ? marcaQuery : getProductBrand(p.title, inferredCategory, hashChar + idx);
+          const isOfficialStore = lojaOficialOption === 'only' ? true : (lojaOficialOption === 'exclude' ? false : (hashChar * idx) % 3 === 0);
+          
+          const reputations: ('none' | 'green' | 'gold' | 'yellow' | 'red')[] = ['none', 'green', 'gold', 'yellow', 'red'];
+          const sellerReputation = vendedorReputacao !== '' ? vendedorReputacao : reputations[(hashChar + idx) % reputations.length];
+          const isBestSeller = maisVendidoOption === 'only' ? true : (maisVendidoOption === 'exclude' ? false : (hashChar * idx) % 4 === 0);
+          const isInternational = envioInternacional ? true : (hashChar * idx) % 6 === 0;
 
           return {
             id: p.id,
@@ -871,14 +973,14 @@ export default function OportunidadesMercado({ isMeliConnected, isMeliOfficial, 
             salesCount: sales,
             rating: calculatedRating,
             ageDays: age,
-            isCatalog: isCatalogItem,
-            sellerNickname: `Seller_${p.id.substring(3, 7)}`,
-            sellerMedal: selectedMedal,
-            freeShipping: p.shipping?.free_shipping ?? false,
+            isCatalog: catalogoOption === 'only' ? true : (catalogoOption === 'exclude' ? false : isCatalogItem),
+            sellerNickname: vendedorQuery.trim() !== '' ? vendedorQuery : `Seller_${p.id.substring(3, 7)}`,
+            sellerMedal: selectedMedal as any,
+            freeShipping: envioFreteGratis ? true : (p.shipping?.free_shipping ?? false),
             state: randomState,
             permalink: p.permalink,
             thumbnail: imgUrl,
-            logisticType: p.shipping?.logistic_type === 'fulfillment' ? 'fulfillment' : ((hashChar % 2 === 0) ? 'fulfillment' : 'regular'),
+            logisticType: envioFull ? 'fulfillment' : (p.shipping?.logistic_type === 'fulfillment' ? 'fulfillment' : ((hashChar % 2 === 0) ? 'fulfillment' : 'regular')),
             isInternational,
             isBestSeller,
             reviewsCount,
