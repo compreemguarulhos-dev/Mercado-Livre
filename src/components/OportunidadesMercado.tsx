@@ -1667,31 +1667,13 @@ export default function OportunidadesMercado({ isMeliConnected, isMeliOfficial, 
   }, [
     activeSubTab,
     selectedCountry,
-    winnerSearchKeyword,
-    filterCategory,
     envioFull,
     envioFreteGratis,
     envioInternacional,
     maisVendidoOption,
     catalogoOption,
-    precoMin,
-    precoMax,
-    receitaMin,
-    receitaMax,
-    vendasMensaisMin,
-    vendasMensaisMax,
-    tempoAnuncioMin,
-    tempoAnuncioMax,
-    imagensMin,
-    imagensMax,
-    avaliacoesMin,
-    avaliacoesMax,
-    classificacaoMin,
-    classificacaoMax,
-    vendedorQuery,
     vendedorMedal,
     vendedorReputacao,
-    marcaQuery,
     lojaOficialOption,
     currentPage,
     itemsLimit
@@ -2087,6 +2069,11 @@ export default function OportunidadesMercado({ isMeliConnected, isMeliOfficial, 
                       type="text" 
                       value={winnerSearchKeyword} 
                       onChange={(e) => setWinnerSearchKeyword(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          handleFindWinners();
+                        }
+                      }}
                       placeholder="Ex: fone bluetooth, organizador acrilico, garrafa termica..." 
                       className="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 pl-9 text-xs text-slate-800 font-bold placeholder:text-slate-400 focus:outline-none focus:border-cyan-500 font-mono"
                     />

@@ -223,13 +223,13 @@ async function startServer() {
     const activeSearchCriterion = normQuery || normCategory || normBrand || normSeller;
 
     const results: any[] = [];
-    const isBeautyNiche = activeSearchCriterion.includes("maquiagem") || activeSearchCriterion.includes("batom") || activeSearchCriterion.includes("rimel") || activeSearchCriterion.includes("sombra") || activeSearchCriterion.includes("base") || activeSearchCriterion.includes("beleza") || activeSearchCriterion.includes("cosmet") || activeSearchCriterion.includes("pincel") || activeSearchCriterion.includes("makeup") || activeSearchCriterion.includes("cuidado");
-    const isTechNiche = activeSearchCriterion.includes("celular") || activeSearchCriterion.includes("smartphone") || activeSearchCriterion.includes("iphone") || activeSearchCriterion.includes("xiaomi") || activeSearchCriterion.includes("samsung") || activeSearchCriterion.includes("redmi") || activeSearchCriterion.includes("motorola");
-    const isAudioNiche = activeSearchCriterion.includes("fone") || activeSearchCriterion.includes("headset") || activeSearchCriterion.includes("audio") || activeSearchCriterion.includes("som") || activeSearchCriterion.includes("bluetooth") || activeSearchCriterion.includes("jbl");
-    const isHardwareNiche = activeSearchCriterion.includes("dobradica") || activeSearchCriterion.includes("fechadura") || activeSearchCriterion.includes("parafuso") || activeSearchCriterion.includes("prego") || activeSearchCriterion.includes("ferramenta") || activeSearchCriterion.includes("furadeira") || activeSearchCriterion.includes("parafusadeira") || activeSearchCriterion.includes("corredica") || activeSearchCriterion.includes("trilho") || activeSearchCriterion.includes("puxador");
-    const isFurnitureNiche = activeSearchCriterion.includes("guarda") || activeSearchCriterion.includes("roupa") || activeSearchCriterion.includes("armario") || activeSearchCriterion.includes("sofa") || activeSearchCriterion.includes("mesa") || activeSearchCriterion.includes("cadeira") || activeSearchCriterion.includes("moveis") || activeSearchCriterion.includes("cama") || activeSearchCriterion.includes("comoda") || activeSearchCriterion.includes("colchao");
-    const isFashionNiche = activeSearchCriterion.includes("camisa") || activeSearchCriterion.includes("camiseta") || activeSearchCriterion.includes("calca") || activeSearchCriterion.includes("vestido") || activeSearchCriterion.includes("casaco") || activeSearchCriterion.includes("tenis") || activeSearchCriterion.includes("sapato") || activeSearchCriterion.includes("bolsa") || activeSearchCriterion.includes("mochila") || activeSearchCriterion.includes("meia");
-    const isAutomotiveNiche = activeSearchCriterion.includes("pneu") || activeSearchCriterion.includes("calota") || activeSearchCriterion.includes("farol") || activeSearchCriterion.includes("veiculo") || activeSearchCriterion.includes("carro") || activeSearchCriterion.includes("moto") || activeSearchCriterion.includes("capacete");
+    const isBeautyNiche = activeSearchCriterion && (activeSearchCriterion.includes("maquiagem") || activeSearchCriterion.includes("batom") || activeSearchCriterion.includes("rimel") || activeSearchCriterion.includes("sombra") || activeSearchCriterion.includes("base") || activeSearchCriterion.includes("beleza") || activeSearchCriterion.includes("cosmet") || activeSearchCriterion.includes("pincel") || activeSearchCriterion.includes("makeup") || activeSearchCriterion.includes("cuidado"));
+    const isTechNiche = activeSearchCriterion && (activeSearchCriterion.includes("celular") || activeSearchCriterion.includes("smartphone") || activeSearchCriterion.includes("iphone") || activeSearchCriterion.includes("xiaomi") || activeSearchCriterion.includes("samsung") || activeSearchCriterion.includes("redmi") || activeSearchCriterion.includes("motorola"));
+    const isAudioNiche = activeSearchCriterion && (activeSearchCriterion.includes("fone") || activeSearchCriterion.includes("headset") || activeSearchCriterion.includes("audio") || activeSearchCriterion.includes("som") || activeSearchCriterion.includes("bluetooth") || activeSearchCriterion.includes("jbl"));
+    const isHardwareNiche = activeSearchCriterion && (activeSearchCriterion.includes("dobradica") || activeSearchCriterion.includes("fechadura") || activeSearchCriterion.includes("parafuso") || activeSearchCriterion.includes("prego") || activeSearchCriterion.includes("ferramenta") || activeSearchCriterion.includes("furadeira") || activeSearchCriterion.includes("parafusadeira") || activeSearchCriterion.includes("corredica") || activeSearchCriterion.includes("trilho") || activeSearchCriterion.includes("puxador"));
+    const isFurnitureNiche = activeSearchCriterion && (activeSearchCriterion.includes("guarda") || activeSearchCriterion.includes("roupa") || activeSearchCriterion.includes("armario") || activeSearchCriterion.includes("sofa") || activeSearchCriterion.includes("mesa") || activeSearchCriterion.includes("cadeira") || activeSearchCriterion.includes("moveis") || activeSearchCriterion.includes("cama") || activeSearchCriterion.includes("comoda") || activeSearchCriterion.includes("colchao"));
+    const isFashionNiche = activeSearchCriterion && (activeSearchCriterion.includes("camisa") || activeSearchCriterion.includes("camiseta") || activeSearchCriterion.includes("calca") || activeSearchCriterion.includes("vestido") || activeSearchCriterion.includes("casaco") || activeSearchCriterion.includes("tenis") || activeSearchCriterion.includes("sapato") || activeSearchCriterion.includes("bolsa") || activeSearchCriterion.includes("mochila") || activeSearchCriterion.includes("meia"));
+    const isAutomotiveNiche = activeSearchCriterion && (activeSearchCriterion.includes("pneu") || activeSearchCriterion.includes("calota") || activeSearchCriterion.includes("farol") || activeSearchCriterion.includes("veiculo") || activeSearchCriterion.includes("carro") || activeSearchCriterion.includes("moto") || activeSearchCriterion.includes("capacete"));
 
     for (let i = 0; i < count; i++) {
       const hash = (activeSearchCriterion || 'produtos').split('').reduce((acc, char, idx) => acc + char.charCodeAt(0) * (idx + 1), 0) + i + 101;
@@ -247,15 +247,17 @@ async function startServer() {
       let isAutomotive = isAutomotiveNiche;
 
       if (!isBeauty && !isTech && !isAudio && !isHardware && !isFurniture && !isFashion && !isAutomotive) {
-        // Distribute results cleanly across all niches when no matching term was defined
-        const selectionIdx = hash % 7;
-        if (selectionIdx === 0) isBeauty = true;
-        else if (selectionIdx === 1) isTech = true;
-        else if (selectionIdx === 2) isAudio = true;
-        else if (selectionIdx === 3) isHardware = true;
-        else if (selectionIdx === 4) isFurniture = true;
-        else if (selectionIdx === 5) isFashion = true;
-        else if (selectionIdx === 6) isAutomotive = true;
+        // Only pick a random niche if absolutely NO custom query string, category, brand, or seller is typed!
+        if (!queryStr && !filterCat && !filterBrand && !filterSeller) {
+          const selectionIdx = hash % 7;
+          if (selectionIdx === 0) isBeauty = true;
+          else if (selectionIdx === 1) isTech = true;
+          else if (selectionIdx === 2) isAudio = true;
+          else if (selectionIdx === 3) isHardware = true;
+          else if (selectionIdx === 4) isFurniture = true;
+          else if (selectionIdx === 5) isFashion = true;
+          else if (selectionIdx === 6) isAutomotive = true;
+        }
       }
 
       if (isBeauty) {
@@ -303,10 +305,22 @@ async function startServer() {
       } else {
         const item = generalNichesList[hash % generalNichesList.length];
         finalId = `MLB987${i}${150 + i}`;
-        const phraseTitle = queryStr.charAt(0).toUpperCase() + queryStr.slice(1);
+        const targetWord = queryStr || filterBrand || filterCat || filterSeller || "Produto Premium";
+        const phraseTitle = targetWord.charAt(0).toUpperCase() + targetWord.slice(1);
         finalTitle = `${phraseTitle} - ${item.suffix} ${i + 1}`;
         price = Math.round((item.basePrice * (0.8 + (hash % 40) / 100)) * 10) / 10 || 59.90;
-        thumbnail = "https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=400&q=80"; // Clean elegant package product shot
+        
+        // Dynamically select beautiful product placeholder shots to match general searches delightfully
+        const sampleImages = [
+          "https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=400&q=80", // White minimalist product package
+          "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=400&q=80", // Red shoe / lifestyle
+          "https://images.unsplash.com/photo-1572635196237-14b3f281503f?auto=format&fit=crop&w=400&q=80", // Sunglasses minimalist
+          "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=400&q=80", // Headphones/electronic
+          "https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?auto=format&fit=crop&w=400&q=80", // Retro camera
+          "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&w=400&q=80", // Skin cream bottle
+          "https://images.unsplash.com/photo-1560343090-f0409e92791a?auto=format&fit=crop&w=400&q=80"  // Boot/Shoe pristine design
+        ];
+        thumbnail = sampleImages[hash % sampleImages.length];
       }
 
       if (finalTitle.length > 80) {
@@ -438,7 +452,9 @@ async function startServer() {
         }
       }
 
-      searchParams.append("q", advancedQuery);
+      if (advancedQuery && advancedQuery.trim()) {
+        searchParams.append("q", advancedQuery.trim());
+      }
       if (limit) searchParams.append("limit", String(limit));
       if (offset) searchParams.append("offset", String(offset));
       
